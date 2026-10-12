@@ -92,10 +92,10 @@ select, input[type=text], input[type=number], textarea {
 .lead { flex: 1 1 12px; min-width: 12px; border-bottom: 1px dotted var(--muted); transform: translateY(-4px); }
 .price { white-space: nowrap; }
 .row.got .price { color: var(--muted); }
-.note { margin: 2px 0 0; color: var(--muted); overflow-wrap: anywhere; }
-.meta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 4px 0 0; font-size: 14px; }
-.dim { color: var(--muted); }
-.meta a { overflow-wrap: anywhere; }
+.details { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 16px; margin: 6px 0 0; }
+.details dt { color: var(--muted); }
+.details dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.linkrow { display: flex; flex-wrap: wrap; gap: 2px 14px; }
 .actions { display: flex; gap: 8px; margin-top: 6px; }
 .empty { padding: 12px 0; color: var(--muted); }
 
@@ -154,7 +154,7 @@ select, input[type=text], input[type=number], textarea {
         <select id="f-pri"><option value="must">must have</option><option value="want" selected>want</option><option value="someday">someday</option></select>
       </div>
       <div class="field full"><label for="f-urls">links</label><textarea id="f-urls" rows="3" placeholder="one link per line" autocomplete="off"></textarea></div>
-      <div class="field full"><label for="f-note">note</label><input id="f-note" type="text" maxlength="200" placeholder="size, colour, where to buy" autocomplete="off"></div>
+      <div class="field full"><label for="f-note">detail</label><input id="f-note" type="text" maxlength="200" placeholder="size, colour, where to buy" autocomplete="off"></div>
     </div>
     <p class="formerr" id="formerr" role="alert"></p>
     <div class="formbtns">
@@ -313,22 +313,31 @@ select, input[type=text], input[type=number], textarea {
     line.appendChild(el('span', 'lead'));
     line.appendChild(el('span', 'price', money(x.price)));
     body.appendChild(line);
-    if (x.note) body.appendChild(el('p', 'note', x.note));
-
-    var meta = el('p', 'meta');
-    meta.appendChild(el('span', 'dim', PRI[x.priority].label.toLowerCase()));
+    var dl = el('dl', 'details');
+    function detail(label, value) {
+      dl.appendChild(el('dt', null, label));
+      var dd = el('dd');
+      if (typeof value === 'string') dd.textContent = value; else dd.appendChild(value);
+      dl.appendChild(dd);
+    }
+    if (x.note) detail('detail', x.note);
+    detail('priority', PRI[x.priority].label.toLowerCase());
     var valid = x.urls.map(function (raw) { return safeUrl(raw); }).filter(Boolean);
-    var seen = {}, total = {};
-    valid.forEach(function (u) { var h = u.hostname.replace(/^www\./, ''); total[h] = (total[h] || 0) + 1; });
-    valid.forEach(function (u) {
-      var h = u.hostname.replace(/^www\./, '');
-      seen[h] = (seen[h] || 0) + 1;
-      var a = el('a', 'link', h + (total[h] > 1 ? ' ' + seen[h] : ''));
-      a.href = u.href; a.target = '_blank'; a.rel = 'noopener noreferrer';
-      meta.appendChild(a);
-    });
-    if (x.example) meta.appendChild(el('span', 'dim', '(example)'));
-    body.appendChild(meta);
+    if (valid.length) {
+      var seen = {}, total = {}, linkrow = el('span', 'linkrow');
+      valid.forEach(function (u) { var h = u.hostname.replace(/^www\./, ''); total[h] = (total[h] || 0) + 1; });
+      valid.forEach(function (u) {
+        var h = u.hostname.replace(/^www\./, '');
+        seen[h] = (seen[h] || 0) + 1;
+        var a = el('a', 'link', h + (total[h] > 1 ? ' ' + seen[h] : ''));
+        a.href = u.href; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        linkrow.appendChild(a);
+      });
+      detail(valid.length > 1 ? 'links' : 'link', linkrow);
+    }
+    if (x.got) detail('status', 'got it');
+    if (x.example) detail('status', 'example');
+    body.appendChild(dl);
 
     if (editing) {
       var act = el('div', 'actions');
