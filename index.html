@@ -5,136 +5,106 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>My Wishlist</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap">
 <style>
-/* Layout: one narrow column. Title and totals on top, filters, then a stack of item rows. Edit tools appear only for the owner. */
+/* Layout: a typed list. One left-aligned column, no cards. Each line is name, dotted leader, price. Notes and links sit underneath. */
 :root {
-  --bg: #EDF0F3;
-  --surface: #FFFFFF;
-  --ink: #13202B;
-  --muted: #586775;
-  --line: #D3DAE1;
-  --chip: #E3E8ED;
-  --accent: #2447F5;
-  --accent-ink: #FFFFFF;
-  --accent-soft: #E4EAFF;
-  --accent-text: #1B37C4;
-  --good: #17835A;
-  --good-soft: #DDF3E8;
+  --bg: #FFFFFF;
+  --ink: #1A1A1A;
+  --muted: #6A6A6A;
+  --line: #B9B9B9;
+  --mark: #FFE45C;
+  --mark-ink: #1A1A1A;
+  --link: #1736C9;
   --danger: #B3261E;
-  --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
-  --font-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font: 'Courier Prime', 'Courier New', ui-monospace, Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0E151B; --surface: #16202A; --ink: #E7EDF2; --muted: #92A3B1; --line: #283642;
-    --chip: #22303B; --accent: #8FA4FF; --accent-ink: #0E151B; --accent-soft: #232F66;
-    --accent-text: #B5C3FF; --good: #4FC88F; --good-soft: #163B2C; --danger: #FF8A80;
+    --bg: #141414; --ink: #EDEDED; --muted: #9A9A9A; --line: #4A4A4A;
+    --mark: #F2D23C; --mark-ink: #141414; --link: #8FA8FF; --danger: #FF8A80;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0E151B; --surface: #16202A; --ink: #E7EDF2; --muted: #92A3B1; --line: #283642;
-  --chip: #22303B; --accent: #8FA4FF; --accent-ink: #0E151B; --accent-soft: #232F66;
-  --accent-text: #B5C3FF; --good: #4FC88F; --good-soft: #163B2C; --danger: #FF8A80;
+  --bg: #141414; --ink: #EDEDED; --muted: #9A9A9A; --line: #4A4A4A;
+  --mark: #F2D23C; --mark-ink: #141414; --link: #8FA8FF; --danger: #FF8A80;
   color-scheme: dark;
 }
-body { background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--font-body); }
 * { box-sizing: border-box; }
-.wrap { max-width: 720px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 96px; }
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-button, input, select, textarea { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font); }
+.wrap { max-width: 42rem; margin-left: clamp(0px, 6vw, 80px); padding-inline: 16px; padding-block: 32px 96px; }
+button, input, select, textarea { font: inherit; color: inherit; border-radius: 0; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+a { color: var(--link); text-underline-offset: 3px; }
 
 .title {
-  display: block; width: 100%; padding: 0 0 4px; margin: 0;
-  font: 800 clamp(32px, 9vw, 48px)/1.05 var(--font-display);
-  letter-spacing: -0.02em; text-wrap: balance;
-  background: transparent; border: 0; border-bottom: 2px dashed transparent; border-radius: 0;
+  display: block; width: 100%; margin: 0; padding: 0 0 8px;
+  font: 700 clamp(26px, 7vw, 38px)/1.15 var(--font);
+  background: transparent; border: 0; border-bottom: 2px solid var(--ink); text-wrap: balance;
 }
-.title:not([readonly]) { border-bottom-color: var(--line); }
-.summary { margin: 10px 0 10px; color: var(--muted); }
-.summary strong { color: var(--ink); font: 500 18px var(--font-mono); font-variant-numeric: tabular-nums; }
-.bar { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
-.bar > i { display: block; height: 100%; width: 0; background: var(--good); transition: width .25s; }
+.title:not([readonly]) { border-bottom-style: dashed; }
+.summary { margin: 12px 0 0; }
+.summary strong { font-weight: 700; }
 
-.tools { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin-top: 22px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 260px; min-width: 0; }
-.chip {
-  border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
-  padding: 5px 12px; cursor: pointer; font-weight: 500; font-size: 13px;
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 20px; }
+.filters { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.f { border: 0; background: none; padding: 1px 6px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.f[aria-pressed="true"] { background: var(--ink); color: var(--bg); text-decoration: none; }
+.sortlabel { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+select, input[type=text], input[type=number], textarea {
+  background: var(--bg); border: 1px solid var(--ink); padding: 6px 8px; min-width: 0;
 }
-.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.chip .n { font-family: var(--font-mono); opacity: .65; margin-left: 4px; }
-.sortlabel { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
-select, input[type=text], input[type=number], input[type=url], textarea {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0;
-}
-.btn {
-  border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
-  padding: 8px 14px; font-weight: 600; cursor: pointer;
-}
-.btn:hover { border-color: var(--muted); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.btn.danger { color: var(--danger); }
-.btn.small { padding: 4px 10px; font-size: 13px; }
+.btn { border: 1px solid var(--ink); background: var(--bg); color: var(--ink); padding: 5px 12px; cursor: pointer; }
+.btn:hover { background: var(--ink); color: var(--bg); }
+.btn.primary { background: var(--ink); color: var(--bg); }
+.btn.primary:hover { background: var(--bg); color: var(--ink); }
+.btn.danger { border-color: var(--danger); color: var(--danger); }
+.btn.danger:hover { background: var(--danger); color: var(--bg); }
+.btn.small { padding: 1px 8px; font-size: 14px; }
 .btn:disabled { opacity: .5; cursor: default; }
-.status { min-height: 1.5em; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.status { min-height: 1.55em; margin: 10px 0 0; color: var(--muted); font-size: 14px; }
 
-.panel { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; }
+.panel { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; padding: 12px; border: 1px dashed var(--muted); }
 .panel .grow { flex: 1 1 auto; }
-.form { margin-top: 14px; padding: 16px; background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; display: grid; gap: 12px; }
-.form h2 { margin: 0; font: 700 18px var(--font-display); }
+.form { display: grid; gap: 12px; margin-top: 14px; padding: 16px; border: 2px solid var(--ink); }
+.form h2 { margin: 0; font: 700 18px var(--font); }
 .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .fields .full { grid-column: 1 / -1; }
 .field { display: grid; gap: 4px; min-width: 0; }
-.field label { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.field label { color: var(--muted); font-size: 14px; }
 .field input, .field select, .field textarea { width: 100%; }
 .field textarea { resize: vertical; line-height: 1.4; }
-.links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 2px; }
-.formerr { color: var(--danger); font-size: 13px; margin: 0; min-height: 1.2em; }
-.formbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.formerr { margin: 0; min-height: 1.3em; color: var(--danger); font-size: 14px; }
+.formbtns { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 480px) { .fields { grid-template-columns: minmax(0, 1fr); } }
 
-.list { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 10px; }
-.row {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: start;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px;
-}
-.tick {
-  width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--muted); background: transparent;
-  display: grid; place-items: center; padding: 0; color: transparent; margin-top: 1px;
-}
-.tick:not(:disabled) { cursor: pointer; }
-.tick:not(:disabled):hover { border-color: var(--good); }
-.tick[aria-pressed="true"] { background: var(--good); border-color: var(--good); color: var(--surface); }
-.tick svg { width: 16px; height: 16px; }
-.main { min-width: 0; }
-.nameline { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
-.name { font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
-.row.got .name { text-decoration: line-through; color: var(--muted); }
-.row.got { background: transparent; }
-.link { font-size: 13px; color: var(--accent-text); text-decoration: none; border-bottom: 1px solid currentColor; overflow-wrap: anywhere; }
-.note { margin: 2px 0 0; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
-.meta { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.tag { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
-.tag.must { background: var(--accent); color: var(--accent-ink); }
-.tag.want { background: var(--accent-soft); color: var(--accent-text); }
-.tag.someday { background: var(--chip); color: var(--muted); }
-.tag.example { border: 1px dashed var(--muted); color: var(--muted); }
-.tag.gotten { background: var(--good-soft); color: var(--good); }
-.price { font: 500 16px var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.list { display: grid; gap: 18px; list-style: none; margin: 22px 0 0; padding: 0; }
+.row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; }
+.box { border: 0; background: none; padding: 0; white-space: pre; line-height: inherit; align-self: start; cursor: default; }
+.box:not(:disabled) { cursor: pointer; }
+.box:not(:disabled):hover { background: var(--mark); color: var(--mark-ink); }
+.body { min-width: 0; }
+.line { display: flex; align-items: baseline; gap: 6px; }
+.name { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.row.must:not(.got) .name { background: var(--mark); color: var(--mark-ink); padding: 0 4px; }
+.row.got .name { font-weight: 400; color: var(--muted); text-decoration: line-through; }
+.lead { flex: 1 1 12px; min-width: 12px; border-bottom: 1px dotted var(--muted); transform: translateY(-4px); }
+.price { white-space: nowrap; }
 .row.got .price { color: var(--muted); }
-.actions { grid-column: 2 / -1; display: flex; gap: 8px; margin-top: 8px; }
-.empty { padding: 28px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; }
+.note { margin: 2px 0 0; color: var(--muted); overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 4px 0 0; font-size: 14px; }
+.dim { color: var(--muted); }
+.meta a { overflow-wrap: anywhere; }
+.actions { display: flex; gap: 8px; margin-top: 6px; }
+.empty { padding: 12px 0; color: var(--muted); }
 
 .savebar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-  background: var(--surface); border-top: 1px solid var(--line);
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--bg);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
 }
-.savebar .in { max-width: 720px; margin: 0 auto; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.savebar .in { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 42rem; margin-left: clamp(0px, 6vw, 80px); }
+.savebar .btn { background: var(--bg); color: var(--ink); border-color: var(--bg); }
 </style>
 
 </head>
@@ -143,17 +113,16 @@ select, input[type=text], input[type=number], input[type=url], textarea {
   <header>
     <input id="title" class="title" type="text" value="My Wishlist" aria-label="List title" readonly maxlength="60">
     <p class="summary" id="summary">Loading your list…</p>
-    <div class="bar" aria-hidden="true"><i id="barfill"></i></div>
   </header>
 
   <div class="tools">
-    <div class="chips" id="chips" role="group" aria-label="Filter items"></div>
-    <label class="sortlabel" for="sort">Sort
+    <div class="filters" id="chips" role="group" aria-label="Filter items"></div>
+    <label class="sortlabel" for="sort">sort
       <select id="sort">
-        <option value="priority">Priority</option>
-        <option value="high">Price, high to low</option>
-        <option value="low">Price, low to high</option>
-        <option value="new">Newest first</option>
+        <option value="priority">priority</option>
+        <option value="high">price, high to low</option>
+        <option value="low">price, low to high</option>
+        <option value="new">newest first</option>
       </select>
     </label>
     <button class="btn small" id="copyBtn" type="button">Copy list</button>
@@ -163,7 +132,7 @@ select, input[type=text], input[type=number], input[type=url], textarea {
 
   <div class="panel" id="panel" hidden>
     <button class="btn primary" id="addBtn" type="button">Add item</button>
-    <label class="sortlabel" for="currency">Currency
+    <label class="sortlabel" for="currency">currency
       <select id="currency">
         <option value="THB">THB ฿</option>
         <option value="USD">USD $</option>
@@ -179,13 +148,13 @@ select, input[type=text], input[type=number], input[type=url], textarea {
   <form class="form" id="form" hidden novalidate>
     <h2 id="formTitle">Add item</h2>
     <div class="fields">
-      <div class="field full"><label for="f-name">Item</label><input id="f-name" type="text" maxlength="120" placeholder="What do you want?" autocomplete="off"></div>
-      <div class="field"><label for="f-price">Price</label><input id="f-price" type="number" inputmode="decimal" min="0" step="any" placeholder="Optional"></div>
-      <div class="field"><label for="f-pri">Priority</label>
-        <select id="f-pri"><option value="must">Must have</option><option value="want" selected>Want</option><option value="someday">Someday</option></select>
+      <div class="field full"><label for="f-name">item</label><input id="f-name" type="text" maxlength="120" placeholder="What do you want?" autocomplete="off"></div>
+      <div class="field"><label for="f-price">price</label><input id="f-price" type="number" inputmode="decimal" min="0" step="any" placeholder="optional"></div>
+      <div class="field"><label for="f-pri">priority</label>
+        <select id="f-pri"><option value="must">must have</option><option value="want" selected>want</option><option value="someday">someday</option></select>
       </div>
-      <div class="field full"><label for="f-urls">Links</label><textarea id="f-urls" rows="3" placeholder="One link per line" autocomplete="off"></textarea></div>
-      <div class="field full"><label for="f-note">Note</label><input id="f-note" type="text" maxlength="200" placeholder="Size, colour, where to buy" autocomplete="off"></div>
+      <div class="field full"><label for="f-urls">links</label><textarea id="f-urls" rows="3" placeholder="one link per line" autocomplete="off"></textarea></div>
+      <div class="field full"><label for="f-note">note</label><input id="f-note" type="text" maxlength="200" placeholder="size, colour, where to buy" autocomplete="off"></div>
     </div>
     <p class="formerr" id="formerr" role="alert"></p>
     <div class="formbtns">
@@ -200,7 +169,7 @@ select, input[type=text], input[type=number], input[type=url], textarea {
 <div class="savebar" id="savebar" hidden>
   <div class="in">
     <span id="savemsg">Unsaved changes</span>
-    <button class="btn primary" id="saveBtn" type="button">Save</button>
+    <button class="btn" id="saveBtn" type="button">Save</button>
   </div>
 </div>
 
@@ -215,7 +184,6 @@ select, input[type=text], input[type=number], input[type=url], textarea {
   var art = null, user = null;
   var editing = false, canWrite = true, dirty = false, saving = false;
   var filter = 'all', sort = 'priority', editId = null, delId = null, delTimer = 0, statusTimer = 0;
-  var CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
 
   function uid() {
     try { if (crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
@@ -254,7 +222,7 @@ select, input[type=text], input[type=number], input[type=url], textarea {
     return out;
   }
   function money(n) {
-    if (n == null || isNaN(n)) return '–';
+    if (n == null || isNaN(n)) return 'price?';
     try {
       return new Intl.NumberFormat(undefined, { style: 'currency', currency: data.currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: n % 1 ? 2 : 0 }).format(n);
     } catch (e) { return data.currency + ' ' + n; }
@@ -308,66 +276,59 @@ select, input[type=text], input[type=number], input[type=url], textarea {
     var total = left.reduce(function (s, x) { return s + (x.price || 0); }, 0);
     var s = $('summary');
     s.textContent = '';
-    if (!n) { s.textContent = 'No items yet.'; $('barfill').style.width = '0'; return; }
+    if (!n) { s.textContent = 'Nothing here yet.'; return; }
     s.appendChild(el('strong', null, money(total)));
-    s.appendChild(document.createTextNode(' still to get · ' + left.length + ' left · ' + (n - left.length) + ' got'));
-    $('barfill').style.width = Math.round(((n - left.length) / n) * 100) + '%';
+    s.appendChild(document.createTextNode(' still to get. ' + left.length + ' left, ' + (n - left.length) + ' got.'));
   }
 
   function renderChips() {
     var wrap = $('chips');
     wrap.textContent = '';
-    var defs = [['all', 'All'], ['must', 'Must have'], ['want', 'Want'], ['someday', 'Someday'], ['got', 'Got']];
+    var defs = [['all', 'all'], ['must', 'must have'], ['want', 'want'], ['someday', 'someday'], ['got', 'got']];
     defs.forEach(function (d) {
       var count = data.items.filter(function (x) {
         return d[0] === 'all' ? true : d[0] === 'got' ? x.got : x.priority === d[0];
       }).length;
-      var b = el('button', 'chip');
+      var b = el('button', 'f', d[1] + ' (' + count + ')');
       b.type = 'button';
       b.setAttribute('aria-pressed', filter === d[0] ? 'true' : 'false');
-      b.appendChild(document.createTextNode(d[1]));
-      b.appendChild(el('span', 'n', String(count)));
       b.addEventListener('click', function () { filter = d[0]; render(); });
       wrap.appendChild(b);
     });
   }
 
   function buildRow(x) {
-    var li = el('li', 'row' + (x.got ? ' got' : ''));
-    var tick = el('button', 'tick');
-    tick.type = 'button';
-    tick.innerHTML = CHECK;
-    tick.setAttribute('aria-pressed', x.got ? 'true' : 'false');
-    tick.setAttribute('aria-label', (x.got ? 'Got it: ' : 'Mark as got: ') + x.name);
-    tick.disabled = !editing;
-    tick.addEventListener('click', function () { x.got = !x.got; touch(); });
-    li.appendChild(tick);
+    var li = el('li', 'row' + (x.got ? ' got' : '') + (x.priority === 'must' ? ' must' : ''));
+    var box = el('button', 'box', x.got ? '[x]' : '[ ]');
+    box.type = 'button';
+    box.setAttribute('aria-pressed', x.got ? 'true' : 'false');
+    box.setAttribute('aria-label', (x.got ? 'Got it: ' : 'Mark as got: ') + x.name);
+    box.disabled = !editing;
+    box.addEventListener('click', function () { x.got = !x.got; touch(); });
+    li.appendChild(box);
 
-    var main = el('div', 'main');
-    var line = el('div', 'nameline');
+    var body = el('div', 'body');
+    var line = el('div', 'line');
     line.appendChild(el('span', 'name', x.name));
-    main.appendChild(line);
+    line.appendChild(el('span', 'lead'));
+    line.appendChild(el('span', 'price', money(x.price)));
+    body.appendChild(line);
+    if (x.note) body.appendChild(el('p', 'note', x.note));
+
+    var meta = el('p', 'meta');
+    meta.appendChild(el('span', 'dim', PRI[x.priority].label.toLowerCase()));
     var valid = x.urls.map(function (raw) { return safeUrl(raw); }).filter(Boolean);
     var seen = {}, total = {};
     valid.forEach(function (u) { var h = u.hostname.replace(/^www\./, ''); total[h] = (total[h] || 0) + 1; });
-    var links = el('div', 'links');
     valid.forEach(function (u) {
       var h = u.hostname.replace(/^www\./, '');
       seen[h] = (seen[h] || 0) + 1;
-      var a = el('a', 'link', h + (total[h] > 1 ? ' ' + seen[h] : '') + ' ↗');
+      var a = el('a', 'link', h + (total[h] > 1 ? ' ' + seen[h] : ''));
       a.href = u.href; a.target = '_blank'; a.rel = 'noopener noreferrer';
-      links.appendChild(a);
+      meta.appendChild(a);
     });
-    if (valid.length) main.appendChild(links);
-    if (x.note) main.appendChild(el('p', 'note', x.note));
-    var meta = el('div', 'meta');
-    meta.appendChild(el('span', 'tag ' + x.priority, PRI[x.priority].label));
-    if (x.got) meta.appendChild(el('span', 'tag gotten', 'Got it'));
-    if (x.example) meta.appendChild(el('span', 'tag example', 'Example'));
-    main.appendChild(meta);
-    li.appendChild(main);
-
-    li.appendChild(el('div', 'price', money(x.price)));
+    if (x.example) meta.appendChild(el('span', 'dim', '(example)'));
+    body.appendChild(meta);
 
     if (editing) {
       var act = el('div', 'actions');
@@ -385,8 +346,9 @@ select, input[type=text], input[type=number], input[type=url], textarea {
         }
       });
       act.appendChild(eb); act.appendChild(db);
-      li.appendChild(act);
+      body.appendChild(act);
     }
+    li.appendChild(body);
     return li;
   }
 
