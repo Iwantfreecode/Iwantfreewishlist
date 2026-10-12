@@ -34,7 +34,7 @@
 }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font); }
-.wrap { max-width: 42rem; margin-left: clamp(0px, 6vw, 80px); padding-inline: 16px; padding-block: 32px 96px; }
+.wrap { max-width: 42rem; margin-inline: auto; padding-inline: 16px; padding-block: 32px 96px; }
 button, input, select, textarea { font: inherit; color: inherit; border-radius: 0; }
 :focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 a { color: var(--link); text-underline-offset: 3px; }
@@ -121,7 +121,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--bg);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
 }
-.savebar .in { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 42rem; margin-left: clamp(0px, 6vw, 80px); }
+.savebar .in { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 42rem; margin-inline: auto; }
 .savebar .btn { background: var(--bg); color: var(--ink); border-color: var(--bg); }
 </style>
 
