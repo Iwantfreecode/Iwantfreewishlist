@@ -32,6 +32,20 @@
       "priority": "want",
       "got": false,
       "example": false
+    },
+    {
+      "id": "98e77141-4b3e-4ba9-8e21-74d9e4fecb65",
+      "got": false,
+      "example": false,
+      "name": "Subu slides",
+      "price": null,
+      "priceMax": null,
+      "approx": false,
+      "urls": [
+        "https://subu2016-onlinestore.com/"
+      ],
+      "note": "Color:TARTANCHECK, STEEL GRAY, or anything Size:4(prefer), 3",
+      "priority": "must"
     }
   ]
 }
