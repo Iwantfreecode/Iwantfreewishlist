@@ -52,7 +52,7 @@ a { color: var(--link); text-underline-offset: 3px; }
 .f { border: 0; background: none; padding: 1px 6px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .f[aria-pressed="true"] { background: var(--ink); color: var(--bg); text-decoration: none; }
 .sortlabel { display: flex; align-items: center; gap: 8px; color: var(--muted); }
-select, input[type=text], input[type=number], textarea {
+select, input[type=text], input[type=number], input[type=password], textarea {
   background: var(--bg); border: 1px solid var(--ink); padding: 6px 8px; min-width: 0;
 }
 .btn { border: 1px solid var(--ink); background: var(--bg); color: var(--ink); padding: 5px 12px; cursor: pointer; }
@@ -99,6 +99,13 @@ select, input[type=text], input[type=number], textarea {
 .actions { display: flex; gap: 8px; margin-top: 6px; }
 .empty { padding: 12px 0; color: var(--muted); }
 
+.notice { margin: 22px 0 0; padding: 14px 16px; background: var(--mark); color: var(--mark-ink); }
+.notice p { margin: 0; }
+.notice .big { font: 700 clamp(22px, 6.5vw, 34px)/1.2 var(--font); }
+.notice .warn { margin-top: 12px; font: 700 clamp(17px, 4.6vw, 22px)/1.25 var(--font); color: #9A1007; }
+.claimbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 14px; }
+.claimline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.disclaimer { margin: 48px 0 0; color: var(--muted); font-size: 13px; }
 .savebar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--bg);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
@@ -114,6 +121,29 @@ select, input[type=text], input[type=number], textarea {
     <input id="title" class="title" type="text" value="My Wishlist" aria-label="List title" readonly maxlength="60">
     <p class="summary" id="summary">Loading your list…</p>
   </header>
+
+  <div class="notice" id="notice" hidden>
+    <p class="big">can use any password this is to stop people from unchecking other people stuff and you can update if you did or didn’t buy it c:</p>
+    <p class="warn">please do not use your real/usual password cause it's a fun project and not properly secured c:</p>
+  </div>
+  <div class="claimbar" id="claimbar" hidden>
+    <span id="claimmsg"></span>
+    <button class="btn small" id="claimBtn" type="button">Log in</button>
+  </div>
+  <form class="form" id="authform" hidden novalidate>
+    <h2>Log in to tick items</h2>
+    <div class="fields">
+      <div class="field full"><label for="a-name">name</label><input id="a-name" type="text" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+      <div class="field full"><label for="a-pass">password (at least 6 characters)</label><input id="a-pass" type="password" maxlength="64" autocomplete="off"></div>
+    </div>
+    <p class="formerr" id="a-err" role="alert"></p>
+    <div class="formbtns">
+      <button class="btn primary" id="a-login" type="submit">Log in</button>
+      <button class="btn" id="a-signup" type="button">New here? Create account</button>
+      <button class="btn" id="a-cancel" type="button">Cancel</button>
+    </div>
+    <p class="status">use the same name and password next time to change what you ticked</p>
+  </form>
 
   <div class="tools">
     <div class="filters" id="chips" role="group" aria-label="Filter items"></div>
@@ -164,6 +194,7 @@ select, input[type=text], input[type=number], textarea {
   </form>
 
   <ul class="list" id="list"><li class="empty">Loading your list…</li></ul>
+  <p class="disclaimer">this is for a fun coding project</p>
 </main>
 
 <div class="savebar" id="savebar" hidden>
@@ -183,6 +214,16 @@ select, input[type=text], input[type=number], textarea {
   var data = { title: 'My Wishlist', currency: 'THB', items: [] };
   var art = null, user = null;
   var editing = false, canWrite = true, dirty = false, saving = false;
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAYn2GnjeIaWZ7CNc9EpqRhri3vjpUsKEQ",
+    authDomain: "iwantfreewishlist.firebaseapp.com",
+    projectId: "iwantfreewishlist",
+    storageBucket: "iwantfreewishlist.firebasestorage.app",
+    messagingSenderId: "121307565975",
+    appId: "1:121307565975:web:7c5d70db545bd643ebfed2"
+  };
+  var claimsOn = !!FIREBASE_CONFIG;
+  var fb = null, claims = {}, authUser = null, pendingClaim = null;
   var filter = 'all', sort = 'priority', editId = null, delId = null, delTimer = 0, statusTimer = 0;
 
   function uid() {
@@ -370,6 +411,20 @@ select, input[type=text], input[type=number], textarea {
     }
     if (x.got) detail('status', 'got it');
     if (x.example) detail('status', 'example');
+    if (claimsOn && !x.got) {
+      var cl = claims[x.id], mine = !!(cl && authUser && cl.by === authUser.uid);
+      var cs = el('span', 'claimline');
+      if (!cl) {
+        cs.appendChild(claimBtnEl("I'm buying this", 'claim', x));
+      } else if (mine) {
+        cs.appendChild(document.createTextNode(cl.status === 'bought' ? 'you bought this' : 'you are buying this'));
+        cs.appendChild(cl.status === 'bought' ? claimBtnEl('not bought yet', 'buying', x) : claimBtnEl('I bought it', 'bought', x));
+        cs.appendChild(claimBtnEl('cancel', 'release', x));
+      } else {
+        cs.appendChild(document.createTextNode(cl.status === 'bought' ? 'someone bought this' : 'someone is buying this'));
+      }
+      detail('buying', cs);
+    }
     body.appendChild(dl);
 
     if (editing) {
@@ -432,6 +487,7 @@ select, input[type=text], input[type=number], textarea {
     renderChips();
     renderList();
     renderSavebar();
+    renderClaimbar();
   }
 
   function openForm(item) {
@@ -552,9 +608,126 @@ select, input[type=text], input[type=number], textarea {
     ]).then(function (r) { art = r[0]; user = r[1]; });
   }
 
-  load().then(function () { render(); return initCaps(); }).then(function () { render(); });
+  function normName(s) { return String(s || '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' '); }
+  function nameEmail(name) {
+    var bytes = new TextEncoder().encode('iwantfreewishlist:' + normName(name));
+    return crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
+      var hex = Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+      return hex.slice(0, 32) + '@example.com';
+    });
+  }
+
+  function claimBtnEl(label, act, item) {
+    var b = el('button', 'btn small', label);
+    b.type = 'button';
+    b.addEventListener('click', function () { claimAct(item, act); });
+    return b;
+  }
+
+  function claimAct(item, act) {
+    if (!fb) { setStatus('Ticking is still loading. Try again in a moment.'); return; }
+    var u = fb.auth.currentUser;
+    if (!u) { pendingClaim = { id: item.id, act: act }; openAuth(); return; }
+    var ref = fb.doc(fb.db, 'claims', item.id);
+    var p = act === 'release'
+      ? fb.deleteDoc(ref)
+      : fb.setDoc(ref, { by: u.uid, status: act === 'bought' ? 'bought' : 'buying', at: fb.serverTimestamp() });
+    p.then(function () {
+      setStatus(act === 'release' ? 'Removed your tick.' : act === 'bought' ? 'Marked as bought.' : act === 'buying' ? 'Marked as not bought yet.' : 'Ticked. Thank you!');
+    }, function (e) {
+      var code = e && e.code;
+      setStatus(code === 'permission-denied' ? 'Someone else got there first, or that tick is not yours.' : 'Could not save that. Check your connection and try again.');
+    });
+  }
+
+  function openAuth() {
+    $('a-err').textContent = '';
+    $('authform').hidden = false;
+    $('authform').scrollIntoView({ block: 'center' });
+    $('a-name').focus();
+  }
+  function closeAuth() {
+    $('authform').hidden = true;
+    $('a-pass').value = '';
+  }
+  function authDo(kind) {
+    var name = $('a-name').value, pass = $('a-pass').value, err = $('a-err');
+    if (!fb) { err.textContent = 'Still loading. Try again in a moment.'; return; }
+    if (!normName(name)) { err.textContent = 'Type a name.'; $('a-name').focus(); return; }
+    if (pass.length < 6) { err.textContent = 'Password needs at least 6 characters.'; $('a-pass').focus(); return; }
+    err.textContent = 'One moment…';
+    nameEmail(name).then(function (email) {
+      return kind === 'signup'
+        ? fb.createUserWithEmailAndPassword(fb.auth, email, pass)
+        : fb.signInWithEmailAndPassword(fb.auth, email, pass);
+    }).then(function () {
+      err.textContent = '';
+      closeAuth();
+    }, function (e) {
+      var c = e && e.code;
+      if (c === 'auth/email-already-in-use') err.textContent = 'That name is taken. If it is yours, tap Log in with the same password. Otherwise pick another name.';
+      else if (c === 'auth/weak-password') err.textContent = 'Password needs at least 6 characters.';
+      else if (c === 'auth/network-request-failed') err.textContent = 'No connection. Try again.';
+      else if (c === 'auth/operation-not-allowed') err.textContent = 'Login is not switched on yet.';
+      else if (c === 'auth/too-many-requests') err.textContent = 'Too many tries. Wait a bit and try again.';
+      else if (c === 'auth/unauthorized-domain') err.textContent = 'This website is not allowed to log in yet.';
+      else err.textContent = kind === 'signup' ? 'Could not create the account.' : 'Wrong name or password. New here? Tap Create account.';
+    });
+  }
+  $('authform').addEventListener('submit', function (e) { e.preventDefault(); authDo('login'); });
+  $('a-signup').addEventListener('click', function () { authDo('signup'); });
+  $('a-cancel').addEventListener('click', function () { pendingClaim = null; closeAuth(); });
+  $('claimBtn').addEventListener('click', function () {
+    if (authUser && fb) { fb.signOut(fb.auth); } else { pendingClaim = null; openAuth(); }
+  });
+
+  function renderClaimbar() {
+    $('notice').hidden = !claimsOn;
+    $('claimbar').hidden = !claimsOn;
+    if (!claimsOn) { $('authform').hidden = true; return; }
+    $('claimmsg').textContent = authUser
+      ? 'You are logged in. Use the buttons on each item.'
+      : 'You can look around without logging in. Log in only when you want to tick something.';
+    $('claimBtn').textContent = authUser ? 'Log out' : 'Log in';
+  }
+
+  function initClaims() {
+    if (!claimsOn) return Promise.resolve();
+    var base = 'https://www.gstatic.com/firebasejs/10.12.2/';
+    return Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]).then(function (m) {
+      var app = m[0].initializeApp(FIREBASE_CONFIG);
+      fb = Object.assign({}, m[1], m[2]);
+      fb.auth = m[1].getAuth(app);
+      fb.db = m[2].getFirestore(app);
+      fb.onAuthStateChanged(fb.auth, function (u) {
+        authUser = u;
+        if (u && pendingClaim) {
+          var pc = pendingClaim; pendingClaim = null;
+          var it = data.items.filter(function (y) { return y.id === pc.id; })[0];
+          if (it) claimAct(it, pc.act);
+        }
+        render();
+      });
+      fb.onSnapshot(fb.collection(fb.db, 'claims'), function (snap) {
+        var c = {};
+        snap.forEach(function (d) {
+          var v = d.data();
+          if (v && typeof v.by === 'string') c[d.id] = { by: v.by, status: v.status === 'bought' ? 'bought' : 'buying' };
+        });
+        claims = c;
+        render();
+      }, function () {
+        claimsOn = false; render();
+        setStatus('Could not load who is buying what, so ticking is off for now.', true);
+      });
+    }).catch(function () {
+      claimsOn = false; fb = null; render();
+      setStatus('Could not load ticking, so it is off for now.', true);
+    });
+  }
+
+  load().then(function () { render(); return initCaps(); }).then(function () { render(); initClaims(); });
 })();
 </script>
-
 </body>
 </html>

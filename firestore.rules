@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /claims/{itemId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.keys().hasOnly(['by','status','at'])
+        && request.resource.data.status in ['buying','bought'];
+      allow update: if request.auth != null
+        && resource.data.by == request.auth.uid
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.keys().hasOnly(['by','status','at'])
+        && request.resource.data.status in ['buying','bought'];
+      allow delete: if request.auth != null
+        && resource.data.by == request.auth.uid;
+    }
+  }
+}
