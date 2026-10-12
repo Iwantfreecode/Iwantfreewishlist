@@ -29,14 +29,12 @@
         "https://a.co/d/018jTSIb"
       ],
       "note": "Carbon fiber > Grey",
-      "priority": "want",
+      "priority": "must",
       "got": false,
       "example": false
     },
     {
       "id": "98e77141-4b3e-4ba9-8e21-74d9e4fecb65",
-      "got": false,
-      "example": false,
       "name": "Subu slides",
       "price": null,
       "priceMax": null,
@@ -44,8 +42,101 @@
       "urls": [
         "https://subu2016-onlinestore.com/"
       ],
-      "note": "Color:TARTANCHECK, STEEL GRAY, or anything Size:4(prefer), 3",
+      "note": "Color:TARTANCHECK, STEEL GRAY, or anything(i love this brand) Size:4(prefer), 3",
+      "priority": "must",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "24154da7-9aee-4bc9-9169-5193d8894400",
+      "name": "Nike mind 001",
+      "price": null,
+      "priceMax": null,
+      "approx": false,
+      "urls": [],
+      "note": "Color: Black chrome, Blackened Blue, any black or white. Size: US-12men",
+      "priority": "want",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "40342441-6f80-469e-abdb-6b85b6aa0f5f",
+      "got": false,
+      "example": false,
+      "name": "PAIR Acne Foam Cream (face wash)",
+      "price": null,
+      "priceMax": null,
+      "approx": false,
+      "urls": [],
+      "note": "it’s in japan c:",
+      "priority": "essential"
+    },
+    {
+      "id": "90b0bd5d-e382-4331-a546-ca0d3cbef420",
+      "got": false,
+      "example": false,
+      "name": "YS-01",
+      "price": 1400,
+      "priceMax": null,
+      "approx": true,
+      "urls": [
+        "https://yeezy.com/products/ys-01-black?srsltid=AU7gw4WCGkFsynI80JFTsfBu5TgYnt6jJcRJilQRDSf9lM3LHb0CBzhi"
+      ],
+      "note": "Color: Black. Size: US-12men",
+      "priority": "want"
+    },
+    {
+      "id": "7bc5bc89-9b4c-4fb3-a1cf-2ef25934c8b2",
+      "got": false,
+      "example": false,
+      "name": "Pc/Laptop",
+      "price": null,
+      "priceMax": null,
+      "approx": false,
+      "urls": [],
+      "note": "Anything that i can play game and run my simulation/code",
       "priority": "must"
+    },
+    {
+      "id": "d5fb8c11-0658-46b1-83e3-a6ca04d2e77e",
+      "got": false,
+      "example": false,
+      "name": "Topologies Bottle Sacoche Medium/Large",
+      "price": 3000,
+      "priceMax": 3700,
+      "approx": false,
+      "urls": [
+        "https://th.topologie.com/products/bottle-sacoche-large",
+        "https://th.topologie.com/products/bottle-sacoche-medium"
+      ],
+      "note": "any puffer one with a Rope would be good c:",
+      "priority": "want"
+    },
+    {
+      "id": "9f830346-1ce7-4b75-912b-c78ce90eb522",
+      "got": false,
+      "example": false,
+      "name": "Man united stuff",
+      "price": null,
+      "priceMax": null,
+      "approx": false,
+      "urls": [
+        "https://store.manutd.com/en"
+      ],
+      "note": "Size: shoes-USmen12-UKmen11 shirt-2xl or xl",
+      "priority": "want"
+    },
+    {
+      "id": "619e475e-f29a-4c54-94e9-ef33416f0ea2",
+      "got": false,
+      "example": false,
+      "name": "Magsafe power bank",
+      "price": null,
+      "priceMax": null,
+      "approx": false,
+      "urls": [],
+      "note": "Any with a magsafe that’s safe",
+      "priority": "want"
     }
   ]
 }
