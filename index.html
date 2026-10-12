@@ -151,7 +151,7 @@ select, input[type=text], input[type=number], textarea {
       <div class="field full"><label for="f-name">item</label><input id="f-name" type="text" maxlength="120" placeholder="What do you want?" autocomplete="off"></div>
       <div class="field full"><label for="f-price">price (one number, a range, or around)</label><input id="f-price" type="text" placeholder="1200  or  1000-1500  or  around 1500" autocomplete="off"></div>
       <div class="field full"><label for="f-pri">priority</label>
-        <select id="f-pri"><option value="must">must have</option><option value="want" selected>want</option><option value="someday">someday</option></select>
+        <select id="f-pri"><option value="must">must have</option><option value="want" selected>want</option><option value="someday">someday</option><option value="essential">essential (everyday stuff)</option></select>
       </div>
       <div class="field full"><label for="f-urls">links</label><textarea id="f-urls" rows="3" placeholder="one link per line" autocomplete="off"></textarea></div>
       <div class="field full"><label for="f-note">detail</label><input id="f-note" type="text" maxlength="200" placeholder="size, colour, where to buy" autocomplete="off"></div>
@@ -176,7 +176,7 @@ select, input[type=text], input[type=number], textarea {
 <script>
 (function () {
   'use strict';
-  var PRI = { must: { label: 'Must have', rank: 0 }, want: { label: 'Want', rank: 1 }, someday: { label: 'Someday', rank: 2 } };
+  var PRI = { must: { label: 'Must have', rank: 0 }, want: { label: 'Want', rank: 1 }, someday: { label: 'Someday', rank: 2 }, essential: { label: 'Essential (everyday stuff)', rank: 3 } };
   var CURRENCIES = ['THB', 'USD', 'EUR', 'GBP', 'JPY'];
   var PENDING_KEY = 'wishlist-pending';
   var $ = function (id) { return document.getElementById(id); };
@@ -317,7 +317,7 @@ select, input[type=text], input[type=number], textarea {
   function renderChips() {
     var wrap = $('chips');
     wrap.textContent = '';
-    var defs = [['all', 'all'], ['must', 'must have'], ['want', 'want'], ['someday', 'someday'], ['got', 'got']];
+    var defs = [['all', 'all'], ['must', 'must have'], ['want', 'want'], ['someday', 'someday'], ['essential', 'essentials'], ['got', 'got']];
     defs.forEach(function (d) {
       var count = data.items.filter(function (x) {
         return d[0] === 'all' ? true : d[0] === 'got' ? x.got : x.priority === d[0];
