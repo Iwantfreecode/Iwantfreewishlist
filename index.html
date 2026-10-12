@@ -107,12 +107,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 .claimbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 14px; }
 .claimline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .disclaimer { margin: 48px 0 0; color: var(--muted); font-size: 13px; }
-#authform { background: #FFFFFF; color: #1A1A1A; border-color: #1A1A1A; }
-#authform label, #authform .status { color: #4A4A4A; }
-#authform input { background: #FFFFFF; color: #1A1A1A; border-color: #1A1A1A; }
-#authform .btn { background: #FFFFFF; color: #1A1A1A; border-color: #1A1A1A; }
-#authform .btn.primary { background: #1A1A1A; color: #FFFFFF; }
-#authform .formerr { color: #B3261E; }
+#claimBtn { background: #FFFFFF; color: #1A1A1A; border-color: #1A1A1A; }
+#claimBtn:hover { background: var(--mark); color: #1A1A1A; }
 .savebar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--bg);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
