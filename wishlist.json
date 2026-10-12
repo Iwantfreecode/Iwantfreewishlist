@@ -1,0 +1,33 @@
+{
+  "title": "I want free stuff c:",
+  "currency": "THB",
+  "items": [
+    {
+      "id": "ec4b5eba-5d94-41ce-b2d9-49a23557a13e",
+      "got": false,
+      "example": false,
+      "name": "Nothing Headphones (a)",
+      "price": null,
+      "urls": [
+        "https://th.shp.ee/GeWkCkDe",
+        "https://th.shp.ee/t1HMv6Gb",
+        "https://a.co/d/0bCUMm0Y"
+      ],
+      "note": "Pink > White",
+      "priority": "want"
+    },
+    {
+      "id": "84ef6550-9b64-40f4-b52f-820af3f593ca",
+      "got": false,
+      "example": false,
+      "name": "Aulumu G03",
+      "price": null,
+      "urls": [
+        "https://th.shp.ee/5jFfDaT2",
+        "https://a.co/d/018jTSIb"
+      ],
+      "note": "Carbon fiber > Grey",
+      "priority": "want"
+    }
+  ]
+}
