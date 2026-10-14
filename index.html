@@ -219,6 +219,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   <div class="dialog">
     <h2 id="warn-t">Heads up</h2>
     <p id="warn-msg"></p>
+    <p>You can still tick this one if you want c:</p>
     <ul id="warn-list"></ul>
     <div class="formbtns">
       <button class="btn primary" id="warn-go" type="button">Tick anyway</button>
@@ -670,9 +671,9 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   function closeWarn() { $('warn').hidden = true; }
   function showWarn(item, hits) {
     var anyBought = hits.some(function (h) { return h.status === 'bought'; });
-    $('warn-msg').textContent = 'An item in the same category (\u201c' + item.tag + '\u201d) ' + (anyBought ? 'has already been bought' : 'is already being bought') + ' c: You can still tick this one if you want c:';
+    $('warn-msg').textContent = 'An item from the same category ' + (anyBought ? 'has already been bought' : 'is already being bought') + ' c:';
     var ul = $('warn-list'); ul.textContent = '';
-    hits.forEach(function (h) { ul.appendChild(el('li', null, h.name + ': ' + (h.status === 'bought' ? 'already bought c:' : 'already being bought c:'))); });
+    hits.forEach(function (h) { ul.appendChild(el('li', null, h.name + ' (' + (h.status === 'bought' ? 'already bought' : 'being bought') + ')')); });
     $('warn-go').onclick = function () { closeWarn(); claimAct(item, 'claim', true); };
     $('warn-back').onclick = closeWarn;
     $('warn').hidden = false;
