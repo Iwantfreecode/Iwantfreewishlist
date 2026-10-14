@@ -117,6 +117,12 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 #authform .btn { font-size: 16px; padding: 10px 16px; }
 #authform .formerr { font-size: 15px; }
 #authform .status { font-size: 14px; }
+.overlay { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .6); }
+.dialog { width: 100%; max-width: 30rem; padding: 20px; background: var(--bg); color: var(--ink); border: 2px solid var(--ink); }
+.dialog h2 { margin: 0 0 8px; font: 700 22px var(--font); }
+.dialog p { margin: 0 0 10px; }
+.dialog ul { margin: 0 0 14px; padding-left: 20px; color: var(--muted); }
+.tagline { background: var(--pink); color: #1A1A1A; padding: 0 6px; }
 .savebar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--bg);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
@@ -194,6 +200,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       <div class="field full"><label for="f-pri">priority</label>
         <select id="f-pri"><option value="must">must have</option><option value="want" selected>want</option><option value="someday">someday</option><option value="essential">essential (everyday stuff)</option></select>
       </div>
+      <div class="field full"><label for="f-tag">tag (optional, same tag = same kind of gift)</label><input id="f-tag" type="text" maxlength="30" placeholder="e.g. slides" autocomplete="off"></div>
       <div class="field full"><label for="f-urls">links</label><textarea id="f-urls" rows="3" placeholder="one link per line" autocomplete="off"></textarea></div>
       <div class="field full"><label for="f-note">detail</label><input id="f-note" type="text" maxlength="200" placeholder="size, colour, where to buy" autocomplete="off"></div>
     </div>
@@ -207,6 +214,18 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   <ul class="list" id="list"><li class="empty">Loading your list…</li></ul>
   <p class="disclaimer">this is for a coding project</p>
 </main>
+
+<div class="overlay" id="warn" hidden role="dialog" aria-modal="true" aria-labelledby="warn-t">
+  <div class="dialog">
+    <h2 id="warn-t">Heads up</h2>
+    <p id="warn-msg"></p>
+    <ul id="warn-list"></ul>
+    <div class="formbtns">
+      <button class="btn primary" id="warn-go" type="button">Tick anyway</button>
+      <button class="btn" id="warn-back" type="button">Go back</button>
+    </div>
+  </div>
+</div>
 
 <div class="savebar" id="savebar" hidden>
   <div class="in">
@@ -270,6 +289,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         urls: normUrls(x),
         note: typeof x.note === 'string' ? x.note.slice(0, 200) : '',
         priority: PRI[x.priority] ? x.priority : 'want',
+        tag: typeof x.tag === 'string' ? x.tag.trim().slice(0, 30) : '',
         got: !!x.got,
         example: !!x.example
       });
@@ -407,6 +427,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     }
     if (x.note) detail('detail', x.note);
     detail('priority', PRI[x.priority].label.toLowerCase());
+    if (x.tag) detail('tag', el('span', 'tagline', x.tag));
     var valid = x.urls.map(function (raw) { return safeUrl(raw); }).filter(Boolean);
     if (valid.length) {
       var seen = {}, total = {}, linkrow = el('span', 'linkrow');
@@ -509,6 +530,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     $('f-name').value = item ? item.name : '';
     $('f-price').value = item ? priceInput(item) : '';
     $('f-pri').value = item ? item.priority : 'want';
+    $('f-tag').value = item ? (item.tag || '') : '';
     $('f-urls').value = item ? item.urls.join('\n') : '';
     $('f-note').value = item ? item.note : '';
     $('formerr').textContent = '';
@@ -532,7 +554,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     });
     if (bad) { $('formerr').textContent = 'One of the links does not look right. Put one full address on each line.'; $('f-urls').focus(); return; }
     if (urls.length > 10) { $('formerr').textContent = 'Up to 10 links per item.'; $('f-urls').focus(); return; }
-    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value };
+    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value, tag: $('f-tag').value.trim().slice(0, 30) };
     if (editId) {
       data.items.forEach(function (x) { if (x.id === editId) { Object.assign(x, fields); x.example = false; } });
     } else {
@@ -636,10 +658,33 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     return b;
   }
 
-  function claimAct(item, act) {
+  function tagKey(x) { return String(x.tag || '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' '); }
+  function sameTagClaims(item, u) {
+    var k = tagKey(item);
+    if (!k) return [];
+    return data.items.filter(function (y) {
+      var c = claims[y.id];
+      return y.id !== item.id && tagKey(y) === k && c && c.by !== u.uid;
+    }).map(function (y) { return { name: y.name, status: claims[y.id].status }; });
+  }
+  function closeWarn() { $('warn').hidden = true; }
+  function showWarn(item, hits) {
+    $('warn-msg').textContent = 'Someone has already ticked a gift in the same group (\u201c' + item.tag + '\u201d). You can still tick this one, but you might end up giving the same kind of gift.';
+    var ul = $('warn-list'); ul.textContent = '';
+    hits.forEach(function (h) { ul.appendChild(el('li', null, h.name + ': ' + (h.status === 'bought' ? 'someone already bought it' : 'someone is buying it'))); });
+    $('warn-go').onclick = function () { closeWarn(); claimAct(item, 'claim', true); };
+    $('warn-back').onclick = closeWarn;
+    $('warn').hidden = false;
+    $('warn-back').focus();
+  }
+  function claimAct(item, act, confirmed) {
     if (!fb) { setStatus('Ticking is still loading. Try again in a moment.'); return; }
     var u = fb.auth.currentUser;
     if (!u) { pendingClaim = { id: item.id, act: act }; openAuth(); return; }
+    if (act === 'claim' && !confirmed) {
+      var hits = sameTagClaims(item, u);
+      if (hits.length) { showWarn(item, hits); return; }
+    }
     var ref = fb.doc(fb.db, 'claims', item.id);
     var p = act === 'release'
       ? fb.deleteDoc(ref)
