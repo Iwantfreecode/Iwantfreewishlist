@@ -669,9 +669,10 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   }
   function closeWarn() { $('warn').hidden = true; }
   function showWarn(item, hits) {
-    $('warn-msg').textContent = 'Someone has already ticked a gift in the same group (\u201c' + item.tag + '\u201d). You can still tick this one, but you might end up giving the same kind of gift.';
+    var anyBought = hits.some(function (h) { return h.status === 'bought'; });
+    $('warn-msg').textContent = 'An item in the same category (\u201c' + item.tag + '\u201d) ' + (anyBought ? 'has already been bought' : 'is already being bought') + ' c: You can still tick this one if you want c:';
     var ul = $('warn-list'); ul.textContent = '';
-    hits.forEach(function (h) { ul.appendChild(el('li', null, h.name + ': ' + (h.status === 'bought' ? 'someone already bought it' : 'someone is buying it'))); });
+    hits.forEach(function (h) { ul.appendChild(el('li', null, h.name + ': ' + (h.status === 'bought' ? 'already bought c:' : 'already being bought c:'))); });
     $('warn-go').onclick = function () { closeWarn(); claimAct(item, 'claim', true); };
     $('warn-back').onclick = closeWarn;
     $('warn').hidden = false;
