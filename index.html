@@ -15,7 +15,7 @@
   --line: #B9B9B9;
   --mark: #FF7EC0;
   --mark-ink: #1A1A1A;
-  --link: #1736C9;
+  --link: #C8246F;
   --danger: #B3261E;
   --pink: #FF7EC0;
   --font: 'Courier Prime', 'Courier New', ui-monospace, Menlo, Consolas, monospace;
@@ -23,13 +23,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #141414; --ink: #EDEDED; --muted: #9A9A9A; --line: #4A4A4A;
-    --mark: #FF8FCB; --mark-ink: #141414; --link: #8FA8FF; --danger: #FF8A80; --pink: #FF8FCB;
+    --mark: #FF8FCB; --mark-ink: #141414; --link: #FF8FCB; --danger: #FF8A80; --pink: #FF8FCB;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #141414; --ink: #EDEDED; --muted: #9A9A9A; --line: #4A4A4A;
-  --mark: #FF8FCB; --mark-ink: #141414; --link: #8FA8FF; --danger: #FF8A80; --pink: #FF8FCB;
+  --mark: #FF8FCB; --mark-ink: #141414; --link: #FF8FCB; --danger: #FF8A80; --pink: #FF8FCB;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -87,7 +87,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 .box:not(:disabled):hover { background: var(--mark); color: var(--mark-ink); }
 .body { min-width: 0; }
 .line { display: flex; align-items: baseline; gap: 6px; }
-.name { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.name { min-width: 0; font-weight: 700; font-size: 21px; overflow-wrap: anywhere; }
 .row.must:not(.got) .name { background: var(--mark); color: var(--mark-ink); padding: 0 4px; }
 .row.got .name { font-weight: 400; color: var(--muted); text-decoration: line-through; }
 .lead { flex: 1 1 12px; min-width: 12px; border-bottom: 1px dotted var(--muted); transform: translateY(-4px); }
@@ -122,7 +122,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 .dialog h2 { margin: 0 0 8px; font: 700 22px var(--font); }
 .dialog p { margin: 0 0 10px; }
 .dialog ul { margin: 0 0 14px; padding-left: 20px; color: var(--muted); }
-.tagline { background: var(--pink); color: #1A1A1A; padding: 0 6px; }
+.tagline { background: #A8235F; color: #FFFFFF; padding: 0 6px; }
 .savebar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--bg);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));

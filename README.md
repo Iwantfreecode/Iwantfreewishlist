@@ -20,3 +20,5 @@ Each item looks like this:
 ```
 
 `priority` is `must`, `want` or `someday`. Use `null` for an unknown price. Set `got` to `true` once you have it.
+
+Note: the private Claude copy of this page uses a cursive font. This GitHub page always keeps the normal font.

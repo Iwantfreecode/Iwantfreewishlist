@@ -15,6 +15,7 @@
       ],
       "note": "Pink > White",
       "priority": "want",
+      "tag": "headphones",
       "got": false,
       "example": false
     },
@@ -30,6 +31,7 @@
       ],
       "note": "Carbon fiber > Grey",
       "priority": "must",
+      "tag": "wallet",
       "got": false,
       "example": false
     },
@@ -44,6 +46,7 @@
       ],
       "note": "Color:TARTANCHECK, STEEL GRAY, or anything(i love this brand) Size:4(prefer), 3",
       "priority": "must",
+      "tag": "slides",
       "got": false,
       "example": false
     },
@@ -56,6 +59,7 @@
       "urls": [],
       "note": "Color: Black chrome, Blackened Blue, any black or white. Size: US-12men",
       "priority": "want",
+      "tag": "slides",
       "got": false,
       "example": false
     },
@@ -68,6 +72,7 @@
       "urls": [],
       "note": "it’s in japan c:",
       "priority": "essential",
+      "tag": "",
       "got": false,
       "example": false
     },
@@ -82,6 +87,7 @@
       ],
       "note": "Color: Black. Size: US-12men",
       "priority": "want",
+      "tag": "slides",
       "got": false,
       "example": false
     },
@@ -94,6 +100,7 @@
       "urls": [],
       "note": "Anything that i can play game and run my simulation/code",
       "priority": "must",
+      "tag": "",
       "got": false,
       "example": false
     },
@@ -109,6 +116,7 @@
       ],
       "note": "any puffer one with a Rope would be good c:",
       "priority": "want",
+      "tag": "bag",
       "got": false,
       "example": false
     },
@@ -123,6 +131,7 @@
       ],
       "note": "Size: shoes-USmen12-UKmen11 shirt-2xl or xl",
       "priority": "want",
+      "tag": "",
       "got": false,
       "example": false
     },
@@ -135,6 +144,7 @@
       "urls": [],
       "note": "Any with a magsafe that’s safe",
       "priority": "want",
+      "tag": "",
       "got": false,
       "example": false
     },
@@ -147,6 +157,7 @@
       "urls": [],
       "note": "Size US12men",
       "priority": "someday",
+      "tag": "",
       "got": false,
       "example": false
     },
@@ -161,13 +172,12 @@
       ],
       "note": "",
       "priority": "someday",
+      "tag": "",
       "got": false,
       "example": false
     },
     {
       "id": "feb75d6f-a25c-47d4-bdf7-a254d5d2d25e",
-      "got": false,
-      "example": false,
       "name": "Trayvax Traverse",
       "price": 3500,
       "priceMax": null,
@@ -177,7 +187,10 @@
         "https://a.co/d/08kxGXTT"
       ],
       "note": "Black",
-      "priority": "want"
+      "priority": "want",
+      "tag": "wallet",
+      "got": false,
+      "example": false
     }
   ]
 }
