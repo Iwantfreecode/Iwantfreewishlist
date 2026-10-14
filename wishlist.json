@@ -61,20 +61,18 @@
     },
     {
       "id": "40342441-6f80-469e-abdb-6b85b6aa0f5f",
-      "got": false,
-      "example": false,
       "name": "PAIR Acne Foam Cream (face wash)",
       "price": null,
       "priceMax": null,
       "approx": false,
       "urls": [],
       "note": "it’s in japan c:",
-      "priority": "essential"
+      "priority": "essential",
+      "got": false,
+      "example": false
     },
     {
       "id": "90b0bd5d-e382-4331-a546-ca0d3cbef420",
-      "got": false,
-      "example": false,
       "name": "YS-01",
       "price": 1400,
       "priceMax": null,
@@ -83,24 +81,24 @@
         "https://yeezy.com/products/ys-01-black?srsltid=AU7gw4WCGkFsynI80JFTsfBu5TgYnt6jJcRJilQRDSf9lM3LHb0CBzhi"
       ],
       "note": "Color: Black. Size: US-12men",
-      "priority": "want"
+      "priority": "want",
+      "got": false,
+      "example": false
     },
     {
       "id": "7bc5bc89-9b4c-4fb3-a1cf-2ef25934c8b2",
-      "got": false,
-      "example": false,
       "name": "Pc/Laptop",
       "price": null,
       "priceMax": null,
       "approx": false,
       "urls": [],
       "note": "Anything that i can play game and run my simulation/code",
-      "priority": "must"
+      "priority": "must",
+      "got": false,
+      "example": false
     },
     {
       "id": "d5fb8c11-0658-46b1-83e3-a6ca04d2e77e",
-      "got": false,
-      "example": false,
       "name": "Topologies Bottle Sacoche Medium/Large",
       "price": 3000,
       "priceMax": 3700,
@@ -110,12 +108,12 @@
         "https://th.topologie.com/products/bottle-sacoche-medium"
       ],
       "note": "any puffer one with a Rope would be good c:",
-      "priority": "want"
+      "priority": "want",
+      "got": false,
+      "example": false
     },
     {
       "id": "9f830346-1ce7-4b75-912b-c78ce90eb522",
-      "got": false,
-      "example": false,
       "name": "Man united stuff",
       "price": null,
       "priceMax": null,
@@ -124,18 +122,61 @@
         "https://store.manutd.com/en"
       ],
       "note": "Size: shoes-USmen12-UKmen11 shirt-2xl or xl",
-      "priority": "want"
+      "priority": "want",
+      "got": false,
+      "example": false
     },
     {
       "id": "619e475e-f29a-4c54-94e9-ef33416f0ea2",
-      "got": false,
-      "example": false,
       "name": "Magsafe power bank",
       "price": null,
       "priceMax": null,
       "approx": false,
       "urls": [],
       "note": "Any with a magsafe that’s safe",
+      "priority": "want",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "15cef598-436f-4cc0-8b27-270bffac0d47",
+      "name": "jordan flight court who decides war",
+      "price": null,
+      "priceMax": null,
+      "approx": false,
+      "urls": [],
+      "note": "Size US12men",
+      "priority": "someday",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "c96a3c54-4eaf-4864-b45d-a789199c1617",
+      "name": "God statue(claude)",
+      "price": 500,
+      "priceMax": null,
+      "approx": true,
+      "urls": [
+        "https://th.shp.ee/9aW1eG8C"
+      ],
+      "note": "",
+      "priority": "someday",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "feb75d6f-a25c-47d4-bdf7-a254d5d2d25e",
+      "got": false,
+      "example": false,
+      "name": "Trayvax Traverse",
+      "price": 3500,
+      "priceMax": null,
+      "approx": true,
+      "urls": [
+        "https://www.trayvax.com/products/traverse-black-magsafe-kickstand-wallet",
+        "https://a.co/d/08kxGXTT"
+      ],
+      "note": "Black",
       "priority": "want"
     }
   ]
