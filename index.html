@@ -671,9 +671,9 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   function closeWarn() { $('warn').hidden = true; }
   function showWarn(item, hits) {
     var anyBought = hits.some(function (h) { return h.status === 'bought'; });
-    $('warn-msg').textContent = 'An item from the same category ' + (anyBought ? 'has already been bought' : 'is already being bought') + ' c:';
+    $('warn-msg').textContent = 'An item from the same category ' + (anyBought ? 'has already been bought' : 'has already been reserved') + ' c:';
     var ul = $('warn-list'); ul.textContent = '';
-    hits.forEach(function (h) { ul.appendChild(el('li', null, h.name + ' (' + (h.status === 'bought' ? 'already bought' : 'being bought') + ')')); });
+    hits.forEach(function (h) { ul.appendChild(el('li', null, h.name + ' (' + (h.status === 'bought' ? 'already bought' : 'reserved') + ')')); });
     $('warn-go').onclick = function () { closeWarn(); claimAct(item, 'claim', true); };
     $('warn-back').onclick = closeWarn;
     $('warn').hidden = false;
