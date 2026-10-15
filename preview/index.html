@@ -210,7 +210,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   <form class="form" id="setform" hidden novalidate>
     <h2>Your settings</h2>
     <div class="fields">
-      <div class="field full"><label for="s-style">page style</label><select id="s-style"><option value="text">Typed list (default)</option><option value="app">App style</option></select></div>
+      <div class="field full"><label for="s-style">page style</label><select id="s-style"><option value="app">App style (default)</option><option value="text">Typed list</option></select></div>
+      <div class="field full"><label for="s-mode">light or dark</label><select id="s-mode"><option value="device">Same as my device (default)</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
       <div class="field full"><label for="s-font">font</label><select id="s-font"><option value="type">Typewriter (default)</option><option value="clean">Clean</option><option value="cursive">Cursive</option><option value="hand">Handwritten</option><option value="serif">Book</option></select></div>
       <div class="field full"><label for="s-scheme">colours</label><select id="s-scheme"><option value="pink">Pink (default)</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="purple">Purple</option><option value="blue">Blue</option></select></div>
     </div>
@@ -318,8 +319,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   var claimsOn = !!FIREBASE_CONFIG;
   var fb = null, claims = {}, authUser = null, pendingClaim = null;
   var formImg = '';
-  var DEF_PREFS = { style: 'text', font: 'type', scheme: 'pink' };
-  var PREF_OPTS = { style: ['text', 'app'], font: ['type', 'clean', 'cursive', 'hand', 'serif'], scheme: ['pink', 'green', 'yellow', 'purple', 'blue'] };
+  var DEF_PREFS = { style: 'app', mode: 'device', font: 'type', scheme: 'pink' };
+  var PREF_OPTS = { style: ['app', 'text'], mode: ['device', 'light', 'dark'], font: ['type', 'clean', 'cursive', 'hand', 'serif'], scheme: ['pink', 'green', 'yellow', 'purple', 'blue'] };
   var prefs = Object.assign({}, DEF_PREFS), prefsTimer = 0, prefsUid = null;
   var filter = 'all', sort = 'priority', editId = null, delId = null, delTimer = 0, statusTimer = 0;
 
@@ -874,6 +875,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     root.setAttribute('data-style', prefs.style);
     root.setAttribute('data-font', prefs.font);
     root.setAttribute('data-scheme', prefs.scheme);
+    if (prefs.mode === 'device') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', prefs.mode);
+    $('s-mode').value = prefs.mode;
     $('s-style').value = prefs.style; $('s-font').value = prefs.font; $('s-scheme').value = prefs.scheme;
   }
   function loadPrefs(u) {
@@ -890,14 +893,14 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     if (!u) return;
     $('s-msg').textContent = 'Saving…';
     prefsTimer = setTimeout(function () {
-      fb.setDoc(fb.doc(fb.db, 'prefs', u.uid), { style: prefs.style, font: prefs.font, scheme: prefs.scheme }).then(function () {
+      fb.setDoc(fb.doc(fb.db, 'prefs', u.uid), { style: prefs.style, mode: prefs.mode, font: prefs.font, scheme: prefs.scheme }).then(function () {
         $('s-msg').textContent = 'Saved to your login c:';
       }, function () {
         $('s-msg').textContent = 'Could not save your settings right now, so they will reset next time.';
       });
     }, 400);
   }
-  ['style', 'font', 'scheme'].forEach(function (k) {
+  ['style', 'mode', 'font', 'scheme'].forEach(function (k) {
     $('s-' + k).addEventListener('change', function () { prefs[k] = $('s-' + k).value; prefs = cleanPrefs(prefs); applyPrefs(); savePrefs(); });
   });
   $('setBtn').addEventListener('click', function () { $('setform').hidden = !$('setform').hidden; if (!$('setform').hidden) $('setform').scrollIntoView({ block: 'center' }); });
@@ -940,6 +943,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     });
   }
 
+  if (claimsOn) applyPrefs();
   load().then(function () { render(); return initCaps(); }).then(function () { render(); initClaims(); });
 })();
 </script>
