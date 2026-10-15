@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>My Wishlist</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Dancing+Script:wght@400;700&family=Caveat:wght@400;700&family=Lora:wght@400;700&display=swap">
 <style>
 /* Layout: a typed list. One left-aligned column, no cards. Each line is name, dotted leader, price. Notes and links sit underneath. */
 :root {
@@ -118,11 +118,56 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 #authform .formerr { font-size: 15px; }
 #authform .status { font-size: 14px; }
 .overlay { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .6); }
+.overlay[hidden] { display: none; }
 .dialog { width: 100%; max-width: 30rem; padding: 20px; background: var(--bg); color: var(--ink); border: 2px solid var(--ink); }
 .dialog h2 { margin: 0 0 8px; font: 700 22px var(--font); }
 .dialog p { margin: 0 0 10px; }
 .dialog ul { margin: 0 0 14px; padding-left: 20px; color: var(--muted); }
-.tagline { background: #A8235F; color: #FFFFFF; padding: 0 6px; }
+.tagline { background: var(--tag); color: #FFFFFF; padding: 0 6px; }
+.pic { display: block; width: 220px; max-width: 100%; height: auto; margin: 8px 0 0; border: 1px solid var(--line); }
+.imgbox { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.imgbox img { width: 120px; max-width: 100%; height: auto; border: 1px solid var(--line); }
+/* Per-user settings: colour schemes, fonts and app style (applied as attributes on the root element). */
+:root { --tag: #A8235F; --app-bg: #F2F2F7; --card: #FFFFFF; --chip: #E8E8ED; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --app-bg: #000000; --card: #1C1C1E; --chip: #2C2C2E; } }
+:root[data-theme="dark"] { --app-bg: #000000; --card: #1C1C1E; --chip: #2C2C2E; }
+:root[data-scheme="green"] { --mark: #7EE2A8; --link: #13804A; --pink: #A6EDC3; --tag: #1B6B43; }
+@media (prefers-color-scheme: dark) { :root[data-scheme="green"]:not([data-theme="light"]) { --mark: #5FD394; --link: #6FE0A0; --pink: #5FD394; --tag: #1B6B43; } }
+:root[data-scheme="green"][data-theme="dark"] { --mark: #5FD394; --link: #6FE0A0; --pink: #5FD394; --tag: #1B6B43; }
+:root[data-scheme="yellow"] { --mark: #FFE45C; --link: #8A6A00; --pink: #FFE45C; --tag: #7A5E00; }
+@media (prefers-color-scheme: dark) { :root[data-scheme="yellow"]:not([data-theme="light"]) { --mark: #F2D23C; --link: #F2D23C; --pink: #F2D23C; --tag: #7A5E00; } }
+:root[data-scheme="yellow"][data-theme="dark"] { --mark: #F2D23C; --link: #F2D23C; --pink: #F2D23C; --tag: #7A5E00; }
+:root[data-scheme="purple"] { --mark: #C9B2FF; --link: #6B3FD6; --pink: #D6C6FF; --tag: #5B33B8; }
+@media (prefers-color-scheme: dark) { :root[data-scheme="purple"]:not([data-theme="light"]) { --mark: #B79CFF; --link: #C2AEFF; --pink: #B79CFF; --tag: #5B33B8; } }
+:root[data-scheme="purple"][data-theme="dark"] { --mark: #B79CFF; --link: #C2AEFF; --pink: #B79CFF; --tag: #5B33B8; }
+:root[data-scheme="blue"] { --mark: #9FD3FF; --link: #1662C4; --pink: #B8DEFF; --tag: #1458A8; }
+@media (prefers-color-scheme: dark) { :root[data-scheme="blue"]:not([data-theme="light"]) { --mark: #7FC2FF; --link: #8FC9FF; --pink: #7FC2FF; --tag: #1458A8; } }
+:root[data-scheme="blue"][data-theme="dark"] { --mark: #7FC2FF; --link: #8FC9FF; --pink: #7FC2FF; --tag: #1458A8; }
+:root[data-font="type"] { --font: 'Courier Prime', 'Courier New', ui-monospace, Menlo, Consolas, monospace; }
+:root[data-font="clean"] { --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+:root[data-font="cursive"] { --font: 'Dancing Script', 'Snell Roundhand', 'Apple Chancery', cursive; }
+:root[data-font="hand"] { --font: 'Caveat', 'Bradley Hand', 'Chalkboard SE', cursive; }
+:root[data-font="serif"] { --font: 'Lora', Georgia, 'Times New Roman', serif; }
+:root[data-font="cursive"] body { font-size: 18px; }
+:root[data-font="hand"] body { font-size: 20px; }
+:root[data-style="app"] body { background: var(--app-bg); }
+:root[data-style="app"] .title { border-bottom: 0; padding-bottom: 4px; }
+:root[data-style="app"] .list { gap: 12px; }
+:root[data-style="app"] .row { grid-template-columns: minmax(0, 1fr); padding: 14px 16px; border-radius: 16px; background: var(--card); }
+:root[data-style="app"] .box:disabled { display: none; }
+:root[data-style="app"] .lead { visibility: hidden; }
+:root[data-style="app"] .btn, :root[data-style="app"] select, :root[data-style="app"] input[type=text], :root[data-style="app"] input[type=password], :root[data-style="app"] textarea { border-radius: 10px; }
+:root[data-style="app"] .btn { border-color: transparent; background: var(--chip); color: var(--ink); }
+:root[data-style="app"] .btn.primary, :root[data-style="app"] .btn:hover { background: var(--ink); color: var(--bg); }
+:root[data-style="app"] select, :root[data-style="app"] input[type=text], :root[data-style="app"] input[type=password], :root[data-style="app"] textarea { border-color: var(--line); background: var(--card); }
+:root[data-style="app"] .f { padding: 4px 12px; border-radius: 999px; background: var(--chip); text-decoration: none; }
+:root[data-style="app"] .f[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+:root[data-style="app"] .form, :root[data-style="app"] .dialog { border: 0; border-radius: 16px; background: var(--card); }
+:root[data-style="app"] .notice, :root[data-style="app"] .panel { border-radius: 14px; }
+:root[data-style="app"] .row.must:not(.got) .name { border-radius: 6px; }
+:root[data-style="app"] .tagline { padding: 0 10px; border-radius: 999px; }
+:root[data-style="app"] .pic { border: 0; border-radius: 12px; }
+:root[data-style="app"] #claimBtn { border-radius: 12px; }
 .savebar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--bg);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
@@ -142,6 +187,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   <div class="claimbar" id="claimbar" hidden>
     <span id="claimmsg"></span>
     <button class="btn small" id="claimBtn" type="button">Log in</button>
+    <button class="btn small" id="setBtn" type="button" hidden>Settings</button>
   </div>
   <div class="notice" id="notice" hidden>
     <p class="big">can use any password this is to stop people from unchecking other people stuff and you can update if you did or didn’t buy it c:</p>
@@ -160,6 +206,20 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       <button class="btn" id="a-cancel" type="button">Cancel</button>
     </div>
     <p class="status">use the same name and password next time to change what you ticked</p>
+  </form>
+  <form class="form" id="setform" hidden novalidate>
+    <h2>Your settings</h2>
+    <div class="fields">
+      <div class="field full"><label for="s-style">page style</label><select id="s-style"><option value="app">App style (default)</option><option value="text">Typed list</option></select></div>
+      <div class="field full"><label for="s-mode">light or dark</label><select id="s-mode"><option value="device">Same as my device (default)</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+      <div class="field full"><label for="s-font">font</label><select id="s-font"><option value="type">Typewriter (default)</option><option value="clean">Clean</option><option value="cursive">Cursive</option><option value="hand">Handwritten</option><option value="serif">Book</option></select></div>
+      <div class="field full"><label for="s-scheme">colours</label><select id="s-scheme"><option value="pink">Pink (default)</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="purple">Purple</option><option value="blue">Blue</option></select></div>
+    </div>
+    <p class="status" id="s-msg">saved to your login, so it follows you on any device c:</p>
+    <div class="formbtns">
+      <button class="btn primary" id="s-done" type="button">Done</button>
+      <button class="btn" id="s-reset" type="button">Back to default</button>
+    </div>
   </form>
 
   <div class="tools">
@@ -201,6 +261,9 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         <select id="f-pri"><option value="must">must have</option><option value="want" selected>want</option><option value="someday">someday</option><option value="essential">essential (everyday stuff)</option></select>
       </div>
       <div class="field full"><label for="f-tag">tag (optional, same tag = same kind of gift)</label><input id="f-tag" type="text" maxlength="30" placeholder="e.g. slides" autocomplete="off"></div>
+      <div class="field full"><label for="f-img">picture (optional)</label><input id="f-img" type="file" accept="image/*">
+        <div class="imgbox"><img id="f-imgprev" alt="Picture preview" hidden><button class="btn small" id="f-imgdel" type="button" hidden>Remove picture</button></div>
+        <p class="formerr" id="f-imgerr"></p></div>
       <div class="field full"><label for="f-urls">links</label><textarea id="f-urls" rows="3" placeholder="one link per line" autocomplete="off"></textarea></div>
       <div class="field full"><label for="f-note">detail</label><input id="f-note" type="text" maxlength="200" placeholder="size, colour, where to buy" autocomplete="off"></div>
     </div>
@@ -255,6 +318,10 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   };
   var claimsOn = !!FIREBASE_CONFIG;
   var fb = null, claims = {}, authUser = null, pendingClaim = null;
+  var formImg = '';
+  var DEF_PREFS = { style: 'app', mode: 'device', font: 'type', scheme: 'pink' };
+  var PREF_OPTS = { style: ['app', 'text'], mode: ['device', 'light', 'dark'], font: ['type', 'clean', 'cursive', 'hand', 'serif'], scheme: ['pink', 'green', 'yellow', 'purple', 'blue'] };
+  var prefs = Object.assign({}, DEF_PREFS), prefsTimer = 0, prefsUid = null;
   var filter = 'all', sort = 'priority', editId = null, delId = null, delTimer = 0, statusTimer = 0;
 
   function uid() {
@@ -291,6 +358,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         note: typeof x.note === 'string' ? x.note.slice(0, 200) : '',
         priority: PRI[x.priority] ? x.priority : 'want',
         tag: typeof x.tag === 'string' ? x.tag.trim().slice(0, 30) : '',
+        img: typeof x.img === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(x.img) && x.img.length < 600000 ? x.img : '',
         got: !!x.got,
         example: !!x.example
       });
@@ -419,6 +487,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     line.appendChild(el('span', 'lead'));
     line.appendChild(el('span', 'price', priceText(x)));
     body.appendChild(line);
+    if (x.img) { var pic = el('img', 'pic'); pic.src = x.img; pic.alt = x.name; pic.loading = 'lazy'; body.appendChild(pic); }
     var dl = el('dl', 'details');
     function detail(label, value) {
       dl.appendChild(el('dt', null, label));
@@ -532,6 +601,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     $('f-price').value = item ? priceInput(item) : '';
     $('f-pri').value = item ? item.priority : 'want';
     $('f-tag').value = item ? (item.tag || '') : '';
+    formImg = item ? (item.img || '') : '';
+    $('f-img').value = ''; $('f-imgerr').textContent = ''; showImgPrev();
     $('f-urls').value = item ? item.urls.join('\n') : '';
     $('f-note').value = item ? item.note : '';
     $('formerr').textContent = '';
@@ -555,7 +626,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     });
     if (bad) { $('formerr').textContent = 'One of the links does not look right. Put one full address on each line.'; $('f-urls').focus(); return; }
     if (urls.length > 10) { $('formerr').textContent = 'Up to 10 links per item.'; $('f-urls').focus(); return; }
-    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value, tag: $('f-tag').value.trim().slice(0, 30) };
+    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value, tag: $('f-tag').value.trim().slice(0, 30), img: formImg };
     if (editId) {
       data.items.forEach(function (x) { if (x.id === editId) { Object.assign(x, fields); x.example = false; } });
     } else {
@@ -621,6 +692,46 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       render();
     });
   });
+
+  function showImgPrev() {
+    $('f-imgprev').hidden = !formImg;
+    $('f-imgdel').hidden = !formImg;
+    if (formImg) $('f-imgprev').src = formImg; else $('f-imgprev').removeAttribute('src');
+  }
+  function shrinkImage(file) {
+    return new Promise(function (resolve, reject) {
+      var rd = new FileReader();
+      rd.onerror = function () { reject(new Error('read')); };
+      rd.onload = function () {
+        var im = new Image();
+        im.onerror = function () { reject(new Error('decode')); };
+        im.onload = function () {
+          var max = 600, w = im.naturalWidth, h = im.naturalHeight;
+          var k = Math.min(1, max / Math.max(w, h));
+          var c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+          var g = c.getContext('2d');
+          g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, c.width, c.height);
+          g.drawImage(im, 0, 0, c.width, c.height);
+          var q = 0.8, out = c.toDataURL('image/jpeg', q);
+          while (out.length > 250000 && q > 0.4) { q -= 0.1; out = c.toDataURL('image/jpeg', q); }
+          resolve(out);
+        };
+        im.src = rd.result;
+      };
+      rd.readAsDataURL(file);
+    });
+  }
+  $('f-img').addEventListener('change', function () {
+    var f = $('f-img').files && $('f-img').files[0];
+    $('f-imgerr').textContent = '';
+    if (!f) return;
+    if (!/^image\//.test(f.type)) { $('f-imgerr').textContent = 'That file is not a picture.'; return; }
+    $('f-imgerr').textContent = 'Loading picture…';
+    shrinkImage(f).then(function (d) { formImg = d; $('f-imgerr').textContent = ''; showImgPrev(); },
+      function () { $('f-imgerr').textContent = 'Could not open that picture. Try a JPG or PNG.'; });
+  });
+  $('f-imgdel').addEventListener('click', function () { formImg = ''; $('f-img').value = ''; showImgPrev(); });
 
   function load() {
     return fetch('wishlist.json', { cache: 'no-store' }).then(function (r) {
@@ -750,7 +861,51 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       ? 'You are logged in. Use the buttons on each item.'
       : 'You can look around without logging in. Log in only when you want to tick something.';
     $('claimBtn').textContent = authUser ? 'Log out' : 'Log in';
+    $('setBtn').hidden = !authUser;
+    if (!authUser) $('setform').hidden = true;
   }
+
+  function cleanPrefs(p) {
+    var o = {};
+    Object.keys(DEF_PREFS).forEach(function (k) { o[k] = p && PREF_OPTS[k].indexOf(p[k]) >= 0 ? p[k] : DEF_PREFS[k]; });
+    return o;
+  }
+  function applyPrefs() {
+    var root = document.documentElement;
+    root.setAttribute('data-style', prefs.style);
+    root.setAttribute('data-font', prefs.font);
+    root.setAttribute('data-scheme', prefs.scheme);
+    if (prefs.mode === 'device') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', prefs.mode);
+    $('s-mode').value = prefs.mode;
+    $('s-style').value = prefs.style; $('s-font').value = prefs.font; $('s-scheme').value = prefs.scheme;
+  }
+  function loadPrefs(u) {
+    prefs = Object.assign({}, DEF_PREFS); prefsUid = u ? u.uid : null; applyPrefs();
+    if (!u || !fb) return;
+    fb.getDoc(fb.doc(fb.db, 'prefs', u.uid)).then(function (snap) {
+      if (prefsUid !== u.uid) return;
+      prefs = cleanPrefs(snap.exists() ? snap.data() : null); applyPrefs();
+    }, function () {});
+  }
+  function savePrefs() {
+    clearTimeout(prefsTimer);
+    var u = fb && fb.auth.currentUser;
+    if (!u) return;
+    $('s-msg').textContent = 'Saving…';
+    prefsTimer = setTimeout(function () {
+      fb.setDoc(fb.doc(fb.db, 'prefs', u.uid), { style: prefs.style, mode: prefs.mode, font: prefs.font, scheme: prefs.scheme }).then(function () {
+        $('s-msg').textContent = 'Saved to your login c:';
+      }, function () {
+        $('s-msg').textContent = 'Could not save your settings right now, so they will reset next time.';
+      });
+    }, 400);
+  }
+  ['style', 'mode', 'font', 'scheme'].forEach(function (k) {
+    $('s-' + k).addEventListener('change', function () { prefs[k] = $('s-' + k).value; prefs = cleanPrefs(prefs); applyPrefs(); savePrefs(); });
+  });
+  $('setBtn').addEventListener('click', function () { $('setform').hidden = !$('setform').hidden; if (!$('setform').hidden) $('setform').scrollIntoView({ block: 'center' }); });
+  $('s-done').addEventListener('click', function () { $('setform').hidden = true; });
+  $('s-reset').addEventListener('click', function () { prefs = Object.assign({}, DEF_PREFS); applyPrefs(); savePrefs(); });
 
   function initClaims() {
     if (!claimsOn) return Promise.resolve();
@@ -762,6 +917,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       fb.db = m[2].getFirestore(app);
       fb.onAuthStateChanged(fb.auth, function (u) {
         authUser = u;
+        loadPrefs(u);
         if (u && pendingClaim) {
           var pc = pendingClaim; pendingClaim = null;
           var it = data.items.filter(function (y) { return y.id === pc.id; })[0];
@@ -787,6 +943,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     });
   }
 
+  if (claimsOn) applyPrefs();
   load().then(function () { render(); return initCaps(); }).then(function () { render(); initClaims(); });
 })();
 </script>
