@@ -861,10 +861,16 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       ? 'You are logged in. Use the buttons on each item.'
       : 'You can look around without logging in. Log in only when you want to tick something.';
     $('claimBtn').textContent = authUser ? 'Log out' : 'Log in';
-    $('setBtn').hidden = !authUser;
-    if (!authUser) $('setform').hidden = true;
+    $('setBtn').hidden = false;
   }
 
+  var PREF_KEY = 'wishlist-prefs';
+  function localPrefs() {
+    try { return cleanPrefs(JSON.parse(localStorage.getItem(PREF_KEY) || 'null')); } catch (e) { return Object.assign({}, DEF_PREFS); }
+  }
+  function prefsNote() {
+    return authUser ? 'Saved to your login, so it follows you on any device c:' : 'Saved on this device c: Log in to keep it on any device.';
+  }
   function cleanPrefs(p) {
     var o = {};
     Object.keys(DEF_PREFS).forEach(function (k) { o[k] = p && PREF_OPTS[k].indexOf(p[k]) >= 0 ? p[k] : DEF_PREFS[k]; });
@@ -880,17 +886,21 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     $('s-style').value = prefs.style; $('s-font').value = prefs.font; $('s-scheme').value = prefs.scheme;
   }
   function loadPrefs(u) {
-    prefs = Object.assign({}, DEF_PREFS); prefsUid = u ? u.uid : null; applyPrefs();
+    prefs = localPrefs(); prefsUid = u ? u.uid : null; applyPrefs();
     if (!u || !fb) return;
     fb.getDoc(fb.doc(fb.db, 'prefs', u.uid)).then(function (snap) {
       if (prefsUid !== u.uid) return;
-      prefs = cleanPrefs(snap.exists() ? snap.data() : null); applyPrefs();
+      if (snap.exists()) { prefs = cleanPrefs(snap.data()); applyPrefs(); }
     }, function () {});
   }
   function savePrefs() {
     clearTimeout(prefsTimer);
     var u = fb && fb.auth.currentUser;
-    if (!u) return;
+    if (!u) {
+      try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); $('s-msg').textContent = prefsNote(); }
+      catch (e) { $('s-msg').textContent = 'Could not save on this device, so it will reset next time.'; }
+      return;
+    }
     $('s-msg').textContent = 'Saving…';
     prefsTimer = setTimeout(function () {
       fb.setDoc(fb.doc(fb.db, 'prefs', u.uid), { style: prefs.style, mode: prefs.mode, font: prefs.font, scheme: prefs.scheme }).then(function () {
@@ -903,7 +913,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   ['style', 'mode', 'font', 'scheme'].forEach(function (k) {
     $('s-' + k).addEventListener('change', function () { prefs[k] = $('s-' + k).value; prefs = cleanPrefs(prefs); applyPrefs(); savePrefs(); });
   });
-  $('setBtn').addEventListener('click', function () { $('setform').hidden = !$('setform').hidden; if (!$('setform').hidden) $('setform').scrollIntoView({ block: 'center' }); });
+  $('setBtn').addEventListener('click', function () { $('s-msg').textContent = prefsNote(); $('setform').hidden = !$('setform').hidden; if (!$('setform').hidden) $('setform').scrollIntoView({ block: 'center' }); });
   $('s-done').addEventListener('click', function () { $('setform').hidden = true; });
   $('s-reset').addEventListener('click', function () { prefs = Object.assign({}, DEF_PREFS); applyPrefs(); savePrefs(); });
 
@@ -943,7 +953,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     });
   }
 
-  if (claimsOn) applyPrefs();
+  if (claimsOn) { prefs = localPrefs(); applyPrefs(); }
   load().then(function () { render(); return initCaps(); }).then(function () { render(); initClaims(); });
 })();
 </script>
