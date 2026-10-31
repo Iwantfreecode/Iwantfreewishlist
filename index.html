@@ -97,7 +97,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 .details dt { color: var(--muted); }
 .details dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .linkrow { display: flex; flex-wrap: wrap; gap: 2px 14px; }
-.actions { display: flex; gap: 8px; margin-top: 6px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .empty { padding: 12px 0; color: var(--muted); }
 
 .notice { margin: 14px 0 0; padding: 14px 16px; background: var(--pink); color: #1A1A1A; }
@@ -545,11 +545,40 @@ select, input[type=text], input[type=number], input[type=password], textarea {
           render();
         }
       });
+      if (sort === 'priority') {
+        // Up/down swap this item with the next item of the same priority,
+        // so you can choose the order inside each priority group.
+        var ub = el('button', 'btn small', '\u2191 up'); ub.type = 'button';
+        ub.setAttribute('aria-label', 'Move up: ' + x.name);
+        ub.disabled = neighbour(x, -1) < 0;
+        ub.addEventListener('click', function () { moveItem(x, -1); });
+        var dnb = el('button', 'btn small', '\u2193 down'); dnb.type = 'button';
+        dnb.setAttribute('aria-label', 'Move down: ' + x.name);
+        dnb.disabled = neighbour(x, 1) < 0;
+        dnb.addEventListener('click', function () { moveItem(x, 1); });
+        act.appendChild(ub); act.appendChild(dnb);
+      }
       act.appendChild(eb); act.appendChild(db);
       body.appendChild(act);
     }
     li.appendChild(body);
     return li;
+  }
+
+  // Index of the closest item with the same priority above (dir -1) or below (dir 1), or -1.
+  function neighbour(x, dir) {
+    var i = data.items.indexOf(x);
+    for (var j = i + dir; j >= 0 && j < data.items.length; j += dir) {
+      if (data.items[j].priority === x.priority && data.items[j].got === x.got) return j;
+    }
+    return -1;
+  }
+  function moveItem(x, dir) {
+    var i = data.items.indexOf(x), j = neighbour(x, dir);
+    if (j < 0) return;
+    data.items[i] = data.items[j];
+    data.items[j] = x;
+    touch();
   }
 
   function renderList() {
