@@ -358,7 +358,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         note: typeof x.note === 'string' ? x.note.slice(0, 200) : '',
         priority: PRI[x.priority] ? x.priority : 'want',
         tag: typeof x.tag === 'string' ? x.tag.trim().slice(0, 30) : '',
-        img: typeof x.img === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(x.img) && x.img.length < 600000 ? x.img : '',
+        img: typeof x.img === 'string' && (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(x.img) && x.img.length < 600000 || /^img\/[a-z0-9-]+\.(jpg|png|webp)(\?v=[a-f0-9]+)?$/.test(x.img)) ? x.img : '',
         got: !!x.got,
         example: !!x.example
       });
@@ -487,7 +487,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     line.appendChild(el('span', 'lead'));
     line.appendChild(el('span', 'price', priceText(x)));
     body.appendChild(line);
-    if (x.img) { var pic = el('img', 'pic'); pic.src = x.img; pic.alt = x.name; pic.loading = 'lazy'; body.appendChild(pic); }
+    if (x.img) { var pic = el('img', 'pic'); pic.src = x.img; pic.alt = x.name; pic.loading = 'lazy'; pic.decoding = 'async'; body.appendChild(pic); }
     var dl = el('dl', 'details');
     function detail(label, value) {
       dl.appendChild(el('dt', null, label));
