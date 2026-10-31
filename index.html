@@ -168,6 +168,14 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 :root[data-style="app"] .tagline { padding: 0 10px; border-radius: 999px; }
 :root[data-style="app"] .pic { border: 0; border-radius: 12px; }
 :root[data-style="app"] #claimBtn { border-radius: 12px; }
+.ro-group h3 { margin: 16px 0 6px; color: var(--muted); font: 700 15px var(--font); }
+.ro-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ro-row { display: flex; align-items: center; gap: 8px; padding: 2px 0 2px 10px; border: 1px solid var(--line); background: var(--bg); -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.ro-row.dragging { border-color: var(--ink); background: var(--mark); color: var(--mark-ink); box-shadow: 0 4px 12px rgba(0, 0, 0, .3); }
+.ro-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ro-handle { padding: 6px 16px; border: 0; background: none; color: inherit; font-size: 24px; line-height: 1; cursor: grab; touch-action: none; }
+#orderwrap { margin-top: 18px; }
+#orderDone { margin-top: 18px; }
 .savebar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--bg);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
@@ -239,6 +247,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 
   <div class="panel" id="panel" hidden>
     <button class="btn primary" id="addBtn" type="button">Add item</button>
+    <button class="btn" id="orderBtn" type="button">Reorder</button>
     <label class="sortlabel" for="currency">currency
       <select id="currency">
         <option value="THB">THB ฿</option>
@@ -275,6 +284,11 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   </form>
 
   <ul class="list" id="list"><li class="empty">Loading your list…</li></ul>
+  <div id="orderwrap" hidden>
+    <p class="status">hold the ≡ on the right and drag to move. items only move inside their own priority.</p>
+    <div id="orderlist"></div>
+    <button class="btn primary" id="orderDone" type="button">Done reordering</button>
+  </div>
   <p class="disclaimer">this is for a coding project</p>
 </main>
 
@@ -319,6 +333,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   var claimsOn = !!FIREBASE_CONFIG;
   var fb = null, claims = {}, authUser = null, pendingClaim = null;
   var formImg = '';
+  var ordering = false, drag = null;
   var DEF_PREFS = { style: 'app', mode: 'device', font: 'type', scheme: 'pink' };
   var PREF_OPTS = { style: ['app', 'text'], mode: ['device', 'light', 'dark'], font: ['type', 'clean', 'cursive', 'hand', 'serif'], scheme: ['pink', 'green', 'yellow', 'purple', 'blue'] };
   var prefs = Object.assign({}, DEF_PREFS), prefsTimer = 0, prefsUid = null;
@@ -545,19 +560,6 @@ select, input[type=text], input[type=number], input[type=password], textarea {
           render();
         }
       });
-      if (sort === 'priority') {
-        // Up/down swap this item with the next item of the same priority,
-        // so you can choose the order inside each priority group.
-        var ub = el('button', 'btn small', '\u2191 up'); ub.type = 'button';
-        ub.setAttribute('aria-label', 'Move up: ' + x.name);
-        ub.disabled = neighbour(x, -1) < 0;
-        ub.addEventListener('click', function () { moveItem(x, -1); });
-        var dnb = el('button', 'btn small', '\u2193 down'); dnb.type = 'button';
-        dnb.setAttribute('aria-label', 'Move down: ' + x.name);
-        dnb.disabled = neighbour(x, 1) < 0;
-        dnb.addEventListener('click', function () { moveItem(x, 1); });
-        act.appendChild(ub); act.appendChild(dnb);
-      }
       act.appendChild(eb); act.appendChild(db);
       body.appendChild(act);
     }
@@ -565,20 +567,81 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     return li;
   }
 
-  // Index of the closest item with the same priority above (dir -1) or below (dir 1), or -1.
-  function neighbour(x, dir) {
-    var i = data.items.indexOf(x);
-    for (var j = i + dir; j >= 0 && j < data.items.length; j += dir) {
-      if (data.items[j].priority === x.priority && data.items[j].got === x.got) return j;
-    }
-    return -1;
+  // Reorder mode: a short list of names, one group per priority.
+  // Hold the handle and drag, like moving a song in a music queue.
+  function renderOrder() {
+    var box = $('orderlist');
+    box.textContent = '';
+    ['must', 'want', 'someday', 'essential'].forEach(function (p) {
+      var items = data.items.filter(function (x) { return x.priority === p; });
+      if (!items.length) return;
+      var sec = el('section', 'ro-group');
+      sec.appendChild(el('h3', null, PRI[p].label.toLowerCase() + ' (' + items.length + ')'));
+      var ul = el('ul', 'ro-list');
+      ul.dataset.pri = p;
+      items.forEach(function (x) {
+        var li = el('li', 'ro-row');
+        li.dataset.id = x.id;
+        li.appendChild(el('span', 'ro-name', x.name));
+        var h = el('button', 'ro-handle', '≡');
+        h.type = 'button';
+        h.setAttribute('aria-label', 'Hold and drag to move ' + x.name);
+        h.addEventListener('pointerdown', startDrag);
+        li.appendChild(h);
+        ul.appendChild(li);
+      });
+      sec.appendChild(ul);
+      box.appendChild(sec);
+    });
   }
-  function moveItem(x, dir) {
-    var i = data.items.indexOf(x), j = neighbour(x, dir);
-    if (j < 0) return;
-    data.items[i] = data.items[j];
-    data.items[j] = x;
-    touch();
+  function startDrag(e) {
+    var h = e.currentTarget;
+    e.preventDefault();
+    if (drag) return;
+    drag = { li: h.parentNode, ul: h.parentNode.parentNode, id: e.pointerId };
+    drag.li.classList.add('dragging');
+    // listen on the whole window: moving the row in the page would make the
+    // handle lose track of the finger otherwise
+    window.addEventListener('pointermove', onDrag);
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+  }
+  function onDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    e.preventDefault();
+    var y = e.clientY, before = null;
+    var rows = Array.prototype.filter.call(drag.ul.children, function (r) { return r !== drag.li; });
+    for (var i = 0; i < rows.length; i++) {
+      var box = rows[i].getBoundingClientRect();
+      if (y < box.top + box.height / 2) { before = rows[i]; break; }
+    }
+    if (before !== drag.li.nextSibling) drag.ul.insertBefore(drag.li, before);
+    if (y < 70) window.scrollBy(0, -14);                      // scroll when dragging near the edges
+    else if (y > window.innerHeight - 70) window.scrollBy(0, 14);
+  }
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    window.removeEventListener('pointermove', onDrag);
+    window.removeEventListener('pointerup', endDrag);
+    window.removeEventListener('pointercancel', endDrag);
+    drag.li.classList.remove('dragging');
+    var ids = Array.prototype.map.call(drag.ul.children, function (r) { return r.dataset.id; });
+    var p = drag.ul.dataset.pri;
+    drag = null;
+    applyGroupOrder(p, ids);
+  }
+  // Put the items of one priority back into data.items in the new order,
+  // using the same slots they had, so the other priorities don't move.
+  function applyGroupOrder(p, ids) {
+    var byId = {}, k = 0, changed = false;
+    data.items.forEach(function (x) { byId[x.id] = x; });
+    data.items = data.items.map(function (x) {
+      if (x.priority !== p) return x;
+      var y = byId[ids[k++]];
+      if (y !== x) changed = true;
+      return y;
+    });
+    if (changed) { dirty = true; renderSavebar(); }
   }
 
   function renderList() {
@@ -609,7 +672,10 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     $('editToggle').textContent = editing ? 'Done' : 'Edit list';
     $('title').readOnly = !editing;
     $('panel').hidden = !editing;
-    if (!editing) $('form').hidden = true;
+    if (!editing) { $('form').hidden = true; ordering = false; }
+    $('list').hidden = ordering;
+    $('orderwrap').hidden = !ordering;
+    if (ordering) renderOrder();
     $('currency').value = data.currency;
     $('sort').value = sort;
     $('clearEx').hidden = !data.items.some(function (x) { return x.example; });
@@ -667,6 +733,11 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   });
   $('formCancel').addEventListener('click', function () { $('form').hidden = true; editId = null; });
   $('addBtn').addEventListener('click', function () { openForm(null); });
+  $('orderBtn').addEventListener('click', function () {
+    ordering = true; $('form').hidden = true; render();
+    $('orderwrap').scrollIntoView({ block: 'start' });
+  });
+  $('orderDone').addEventListener('click', function () { ordering = false; render(); });
   $('clearEx').addEventListener('click', function () {
     data.items = data.items.filter(function (x) { return !x.example; });
     touch();
