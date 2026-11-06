@@ -378,6 +378,54 @@
       "img": "",
       "got": false,
       "example": false
+    },
+    {
+      "id": "7208983f-ad2f-48cf-8574-05015ddd9a00",
+      "name": "ERRANT DUFFEL BAG",
+      "price": 7300,
+      "priceMax": null,
+      "approx": true,
+      "urls": [
+        "https://www.boundarysupply.com/products/errant-duffel?srsltid=AYCX9vKSEy1oHkAdiCGhd1aDAQz6IquLolsU92n5fQJ3B1vkDJ6oMbHf"
+      ],
+      "note": "color: black",
+      "priority": "must",
+      "tag": "travel bag",
+      "img": "img/7208983f-ad2f-48cf-8574-05015ddd9a00.jpg?v=2e410500",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "8971a02a-154c-41f4-82d8-574e3cc978c4",
+      "name": "City Rhythm Miami Tropical Confessions",
+      "price": 5000,
+      "priceMax": null,
+      "approx": true,
+      "urls": [
+        "https://www.cityrhythmfragrance.com/products/tropical-confessions"
+      ],
+      "note": "",
+      "priority": "want",
+      "tag": "cologne",
+      "img": "img/8971a02a-154c-41f4-82d8-574e3cc978c4.jpg?v=94263602",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "a0360a40-66de-4b29-aa71-e9c18276a87d",
+      "got": false,
+      "example": false,
+      "name": "kilian angels share",
+      "price": 10000,
+      "priceMax": null,
+      "approx": true,
+      "urls": [
+        "https://www.bykilian.com/product/19797/82905/perfume/angels-share/the-liquors"
+      ],
+      "note": "",
+      "priority": "want",
+      "tag": "cologne",
+      "img": "img/a0360a40-66de-4b29-aa71-e9c18276a87d.jpg?v=4c704d08"
     }
   ]
 }
