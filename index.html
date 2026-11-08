@@ -271,7 +271,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       <div class="field full"><label for="f-name">item</label><input id="f-name" type="text" maxlength="120" placeholder="What do you want?" autocomplete="off"></div>
       <div class="field full"><label for="f-price">price (one number, a range, or around)</label><input id="f-price" type="text" placeholder="1200  or  1000-1500  or  around 1500" autocomplete="off"></div>
       <div class="field full"><label for="f-pri">priority</label>
-        <select id="f-pri"><option value="must">must have</option><option value="should">should have</option><option value="want" selected>want</option><option value="someday">someday</option><option value="essential">essential (everyday stuff)</option></select>
+        <select id="f-pri"><option value="must">must have</option><option value="should">need this</option><option value="want" selected>want</option><option value="someday">someday</option><option value="essential">essential (everyday stuff)</option></select>
       </div>
       <div class="field full"><label for="f-tag">tag (optional, same tag = same kind of gift)</label><input id="f-tag" type="text" maxlength="30" placeholder="e.g. slides" autocomplete="off"></div>
       <div class="field full"><label for="f-rep">can friends pick more than one of this kind?</label><select id="f-rep"><option value="">no, warn if the same tag is already picked</option><option value="item">yes, just this item</option><option value="tag">yes, the whole tag (every item with this tag)</option></select></div>
@@ -320,7 +320,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 <script>
 (function () {
   'use strict';
-  var PRI = { must: { label: 'Must have', rank: 0 }, should: { label: 'Should have', rank: 1 }, want: { label: 'Want', rank: 2 }, someday: { label: 'Someday', rank: 3 }, essential: { label: 'Essential (everyday stuff)', rank: 4 } };
+  var PRI = { must: { label: 'Must have', rank: 0 }, should: { label: 'Need this', rank: 1 }, want: { label: 'Want', rank: 2 }, someday: { label: 'Someday', rank: 3 }, essential: { label: 'Essential (everyday stuff)', rank: 4 } };
   var CURRENCIES = ['THB', 'USD', 'EUR', 'GBP', 'JPY'];
   var PENDING_KEY = 'wishlist-pending';
   var $ = function (id) { return document.getElementById(id); };
@@ -499,7 +499,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   function renderChips() {
     var wrap = $('chips');
     wrap.textContent = '';
-    var defs = [['all', 'all'], ['must', 'must have'], ['should', 'should have'], ['want', 'want'], ['someday', 'someday'], ['essential', 'essentials'], ['got', 'got']];
+    var defs = [['all', 'all'], ['must', 'must have'], ['should', 'need this'], ['want', 'want'], ['someday', 'someday'], ['essential', 'essentials'], ['got', 'got']];
     defs.forEach(function (d) {
       var count = data.items.filter(function (x) {
         return d[0] === 'all' ? true : d[0] === 'got' ? x.got : x.priority === d[0];
