@@ -17,9 +17,11 @@
       "priority": "want",
       "tag": "headphones",
       "repeat": "",
-      "img": "img/ec4b5eba-5d94-41ce-b2d9-49a23557a13e.jpg?v=0752ac37",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/ec4b5eba-5d94-41ce-b2d9-49a23557a13e.jpg?v=0752ac37"
+      ]
     },
     {
       "id": "84ef6550-9b64-40f4-b52f-820af3f593ca",
@@ -35,9 +37,11 @@
       "priority": "must",
       "tag": "wallet",
       "repeat": "",
-      "img": "img/84ef6550-9b64-40f4-b52f-820af3f593ca.jpg?v=a80070f8",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/84ef6550-9b64-40f4-b52f-820af3f593ca.jpg?v=a80070f8"
+      ]
     },
     {
       "id": "98e77141-4b3e-4ba9-8e21-74d9e4fecb65",
@@ -52,9 +56,11 @@
       "priority": "must",
       "tag": "slides",
       "repeat": "",
-      "img": "img/98e77141-4b3e-4ba9-8e21-74d9e4fecb65.jpg?v=18a76abc",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/98e77141-4b3e-4ba9-8e21-74d9e4fecb65.jpg?v=18a76abc"
+      ]
     },
     {
       "id": "6253bdac-4635-44f6-92c4-293b961c713c",
@@ -69,9 +75,11 @@
       "priority": "want",
       "tag": "Wallet",
       "repeat": "",
-      "img": "img/6253bdac-4635-44f6-92c4-293b961c713c.jpg?v=97888446",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/6253bdac-4635-44f6-92c4-293b961c713c.jpg?v=97888446"
+      ]
     },
     {
       "id": "40342441-6f80-469e-abdb-6b85b6aa0f5f",
@@ -84,9 +92,9 @@
       "priority": "essential",
       "tag": "",
       "repeat": "",
-      "img": "",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": []
     },
     {
       "id": "feb75d6f-a25c-47d4-bdf7-a254d5d2d25e",
@@ -102,9 +110,11 @@
       "priority": "want",
       "tag": "wallet",
       "repeat": "",
-      "img": "img/feb75d6f-a25c-47d4-bdf7-a254d5d2d25e.jpg?v=63262045",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/feb75d6f-a25c-47d4-bdf7-a254d5d2d25e.jpg?v=63262045"
+      ]
     },
     {
       "id": "d5fb8c11-0658-46b1-83e3-a6ca04d2e77e",
@@ -117,12 +127,14 @@
         "https://th.topologie.com/products/bottle-sacoche-medium"
       ],
       "note": "any puffer one with a Rope would be good c:",
-      "priority": "must",
+      "priority": "should",
       "tag": "bag",
       "repeat": "",
-      "img": "img/d5fb8c11-0658-46b1-83e3-a6ca04d2e77e.jpg?v=4d011e6f",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/d5fb8c11-0658-46b1-83e3-a6ca04d2e77e.jpg?v=4d011e6f"
+      ]
     },
     {
       "id": "fe5dac3f-19d8-40c7-8da7-3beaf4fc0acd",
@@ -137,9 +149,11 @@
       "priority": "must",
       "tag": "Laptop bag",
       "repeat": "",
-      "img": "img/fe5dac3f-19d8-40c7-8da7-3beaf4fc0acd.jpg?v=33d4744f",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/fe5dac3f-19d8-40c7-8da7-3beaf4fc0acd.jpg?v=33d4744f"
+      ]
     },
     {
       "id": "90b0bd5d-e382-4331-a546-ca0d3cbef420",
@@ -154,9 +168,9 @@
       "priority": "want",
       "tag": "slides",
       "repeat": "",
-      "img": "",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": []
     },
     {
       "id": "24154da7-9aee-4bc9-9169-5193d8894400",
@@ -169,9 +183,9 @@
       "priority": "want",
       "tag": "slides",
       "repeat": "",
-      "img": "",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": []
     },
     {
       "id": "15cef598-436f-4cc0-8b27-270bffac0d47",
@@ -184,9 +198,9 @@
       "priority": "someday",
       "tag": "",
       "repeat": "",
-      "img": "",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": []
     },
     {
       "id": "c96a3c54-4eaf-4864-b45d-a789199c1617",
@@ -201,9 +215,9 @@
       "priority": "someday",
       "tag": "",
       "repeat": "",
-      "img": "",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": []
     },
     {
       "id": "b072fbe4-656f-4431-b4be-77c863855d64",
@@ -216,26 +230,26 @@
       "priority": "want",
       "tag": "slides",
       "repeat": "",
-      "img": "img/b072fbe4-656f-4431-b4be-77c863855d64.jpg?v=25ed2f45",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/b072fbe4-656f-4431-b4be-77c863855d64.jpg?v=25ed2f45"
+      ]
     },
     {
-      "id": "bb3265b8-e32e-47f9-8769-f4cc134e7c65",
-      "name": "BEVIS GEAR 22L TOP SHELF Sling/Backpack",
-      "price": 11000,
+      "id": "7bc5bc89-9b4c-4fb3-a1cf-2ef25934c8b2",
+      "name": "Pc/Laptop",
+      "price": null,
       "priceMax": null,
-      "approx": true,
-      "urls": [
-        "https://bevisgear.com/products/the-top-shelf"
-      ],
-      "note": "",
+      "approx": false,
+      "urls": [],
+      "note": "Anything that i can play game and run my simulation/code (Preferably Laptop)",
       "priority": "must",
-      "tag": "laptop bag",
+      "tag": "",
       "repeat": "",
-      "img": "img/bb3265b8-e32e-47f9-8769-f4cc134e7c65.jpg?v=ee632ea1",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": []
     },
     {
       "id": "77e13897-2626-4343-aaa4-90b69d1075bf",
@@ -247,12 +261,14 @@
         "https://www.veriatravel.com/products/savvy-sling"
       ],
       "note": "color: black",
-      "priority": "must",
+      "priority": "should",
       "tag": "laptop bag",
       "repeat": "",
-      "img": "img/77e13897-2626-4343-aaa4-90b69d1075bf.jpg?v=8ac7b28c",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/77e13897-2626-4343-aaa4-90b69d1075bf.jpg?v=8ac7b28c"
+      ]
     },
     {
       "id": "a11d464a-d1ab-4e57-b3d6-b54880ed5c82",
@@ -267,24 +283,30 @@
       "priority": "want",
       "tag": "laptop bag",
       "repeat": "",
-      "img": "img/a11d464a-d1ab-4e57-b3d6-b54880ed5c82.jpg?v=805aa194",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/a11d464a-d1ab-4e57-b3d6-b54880ed5c82.jpg?v=805aa194"
+      ]
     },
     {
-      "id": "7bc5bc89-9b4c-4fb3-a1cf-2ef25934c8b2",
-      "name": "Pc/Laptop",
-      "price": null,
+      "id": "bb3265b8-e32e-47f9-8769-f4cc134e7c65",
+      "name": "BEVIS GEAR 22L TOP SHELF Sling/Backpack",
+      "price": 11000,
       "priceMax": null,
-      "approx": false,
-      "urls": [],
-      "note": "Anything that i can play game and run my simulation/code (Preferably Laptop)",
+      "approx": true,
+      "urls": [
+        "https://bevisgear.com/products/the-top-shelf"
+      ],
+      "note": "",
       "priority": "must",
-      "tag": "",
+      "tag": "laptop bag",
       "repeat": "",
-      "img": "",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/bb3265b8-e32e-47f9-8769-f4cc134e7c65.jpg?v=ee632ea1"
+      ]
     },
     {
       "id": "a7df54a6-e1c4-48e7-b104-da3d33669e87",
@@ -299,9 +321,11 @@
       "priority": "want",
       "tag": "laptop bag",
       "repeat": "",
-      "img": "img/a7df54a6-e1c4-48e7-b104-da3d33669e87.jpg?v=fd34aa25",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/a7df54a6-e1c4-48e7-b104-da3d33669e87.jpg?v=fd34aa25"
+      ]
     },
     {
       "id": "bf260409-564a-461f-8713-816074ab10ed",
@@ -316,26 +340,30 @@
       "priority": "want",
       "tag": "travel bag",
       "repeat": "",
-      "img": "img/bf260409-564a-461f-8713-816074ab10ed.jpg?v=be9a291a",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/bf260409-564a-461f-8713-816074ab10ed.jpg?v=be9a291a"
+      ]
     },
     {
-      "id": "00fcd8ea-0499-44ef-a3ac-3363816fde02",
-      "name": "Aer Travel Pack 4",
-      "price": 8300,
-      "priceMax": 9000,
-      "approx": false,
+      "id": "dc5b822e-e069-4ba2-9136-6ff264d6489e",
+      "name": "Hot Shot Tote",
+      "price": 3300,
+      "priceMax": null,
+      "approx": true,
       "urls": [
-        "https://aersf.com/collections/all-products/products/travel-pack-4-35l?variant=42596299538528&country=TH"
+        "https://www.thenorthface.com/en-us/p/bags-and-gear/bags/messengers-and-totes-829876/hot-shot-tote-NF0A8JCF?color=SM4&size=OS"
       ],
-      "note": "color: black",
+      "note": "color: white or black",
       "priority": "must",
-      "tag": "travel bag",
+      "tag": "laptop bag",
       "repeat": "",
-      "img": "img/00fcd8ea-0499-44ef-a3ac-3363816fde02.jpg?v=e4fb24df",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/dc5b822e-e069-4ba2-9136-6ff264d6489e.jpg?v=9409eb6b"
+      ]
     },
     {
       "id": "3ce33a02-26ed-4822-bccf-412dc86ce340",
@@ -350,9 +378,11 @@
       "priority": "want",
       "tag": "travel bag",
       "repeat": "",
-      "img": "img/3ce33a02-26ed-4822-bccf-412dc86ce340.jpg?v=db05051b",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/3ce33a02-26ed-4822-bccf-412dc86ce340.jpg?v=db05051b"
+      ]
     },
     {
       "id": "096fae23-df88-4131-b8ce-b511401d329b",
@@ -367,9 +397,11 @@
       "priority": "want",
       "tag": "travel bag",
       "repeat": "",
-      "img": "img/096fae23-df88-4131-b8ce-b511401d329b.jpg?v=4816dd5e",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/096fae23-df88-4131-b8ce-b511401d329b.jpg?v=4816dd5e"
+      ]
     },
     {
       "id": "9f830346-1ce7-4b75-912b-c78ce90eb522",
@@ -384,9 +416,9 @@
       "priority": "want",
       "tag": "",
       "repeat": "",
-      "img": "",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": []
     },
     {
       "id": "619e475e-f29a-4c54-94e9-ef33416f0ea2",
@@ -399,9 +431,9 @@
       "priority": "want",
       "tag": "",
       "repeat": "",
-      "img": "",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": []
     },
     {
       "id": "7208983f-ad2f-48cf-8574-05015ddd9a00",
@@ -416,9 +448,11 @@
       "priority": "must",
       "tag": "travel bag",
       "repeat": "",
-      "img": "img/7208983f-ad2f-48cf-8574-05015ddd9a00.jpg?v=2e410500",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/7208983f-ad2f-48cf-8574-05015ddd9a00.jpg?v=2e410500"
+      ]
     },
     {
       "id": "8971a02a-154c-41f4-82d8-574e3cc978c4",
@@ -433,9 +467,11 @@
       "priority": "want",
       "tag": "cologne",
       "repeat": "",
-      "img": "img/8971a02a-154c-41f4-82d8-574e3cc978c4.jpg?v=94263602",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/8971a02a-154c-41f4-82d8-574e3cc978c4.jpg?v=94263602"
+      ]
     },
     {
       "id": "a0360a40-66de-4b29-aa71-e9c18276a87d",
@@ -450,9 +486,11 @@
       "priority": "want",
       "tag": "cologne",
       "repeat": "",
-      "img": "img/a0360a40-66de-4b29-aa71-e9c18276a87d.jpg?v=4c704d08",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/a0360a40-66de-4b29-aa71-e9c18276a87d.jpg?v=4c704d08"
+      ]
     },
     {
       "id": "6471bfb2-0c25-4b8e-9b79-0639b2cff01c",
@@ -464,12 +502,14 @@
         "https://store.steampowered.com/app/2406770/Bodycam/"
       ],
       "note": "",
-      "priority": "must",
+      "priority": "should",
       "tag": "game",
       "repeat": "tag",
-      "img": "img/6471bfb2-0c25-4b8e-9b79-0639b2cff01c.jpg?v=d32ca272",
       "got": false,
-      "example": false
+      "example": false,
+      "imgs": [
+        "img/6471bfb2-0c25-4b8e-9b79-0639b2cff01c.jpg?v=d32ca272"
+      ]
     },
     {
       "id": "6bd92103-5123-46f3-afee-ba102896cbf3",
@@ -484,26 +524,30 @@
       "priority": "want",
       "tag": "game",
       "repeat": "",
-      "img": "img/6bd92103-5123-46f3-afee-ba102896cbf3.jpg?v=ec9091c7",
-      "got": false,
-      "example": false
-    },
-    {
-      "id": "dc5b822e-e069-4ba2-9136-6ff264d6489e",
       "got": false,
       "example": false,
-      "name": "Hot Shot Tote",
-      "price": 3300,
-      "priceMax": null,
-      "approx": true,
+      "imgs": [
+        "img/6bd92103-5123-46f3-afee-ba102896cbf3.jpg?v=ec9091c7"
+      ]
+    },
+    {
+      "id": "00fcd8ea-0499-44ef-a3ac-3363816fde02",
+      "name": "Aer Travel Pack 4",
+      "price": 8300,
+      "priceMax": 9000,
+      "approx": false,
       "urls": [
-        "https://www.thenorthface.com/en-us/p/bags-and-gear/bags/messengers-and-totes-829876/hot-shot-tote-NF0A8JCF?color=SM4&size=OS"
+        "https://aersf.com/collections/all-products/products/travel-pack-4-35l?variant=42596299538528&country=TH"
       ],
-      "note": "color: white or black",
+      "note": "color: black",
       "priority": "must",
-      "tag": "laptop bag",
+      "tag": "travel bag",
       "repeat": "",
-      "img": "img/dc5b822e-e069-4ba2-9136-6ff264d6489e.jpg?v=9409eb6b"
+      "got": false,
+      "example": false,
+      "imgs": [
+        "img/00fcd8ea-0499-44ef-a3ac-3363816fde02.jpg?v=e4fb24df"
+      ]
     }
   ]
 }

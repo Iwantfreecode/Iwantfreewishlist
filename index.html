@@ -127,6 +127,10 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 .pic { display: block; width: 220px; max-width: 100%; height: auto; margin: 8px 0 0; border: 1px solid var(--line); }
 .imgbox { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
 .imgbox img { width: 120px; max-width: 100%; height: auto; border: 1px solid var(--line); }
+.imgbox .thumb { display: grid; gap: 4px; justify-items: start; }
+.pics { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+.pics .pic { margin: 0; }
+.pics.multi .pic { width: 150px; max-width: calc(50% - 4px); }
 /* Per-user settings: colour schemes, fonts and app style (applied as attributes on the root element). */
 :root { --tag: #A8235F; --app-bg: #F2F2F7; --card: #FFFFFF; --chip: #E8E8ED; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --app-bg: #000000; --card: #1C1C1E; --chip: #2C2C2E; } }
@@ -275,8 +279,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       </div>
       <div class="field full"><label for="f-tag">tag (optional, same tag = same kind of gift)</label><input id="f-tag" type="text" maxlength="30" placeholder="e.g. slides" autocomplete="off"></div>
       <div class="field full"><label for="f-rep">can friends pick more than one of this kind?</label><select id="f-rep"><option value="">no, warn if the same tag is already picked</option><option value="item">yes, just this item</option><option value="tag">yes, the whole tag (every item with this tag)</option></select></div>
-      <div class="field full"><label for="f-img">picture (optional)</label><input id="f-img" type="file" accept="image/*">
-        <div class="imgbox"><img id="f-imgprev" alt="Picture preview" hidden><button class="btn small" id="f-imgdel" type="button" hidden>Remove picture</button></div>
+      <div class="field full"><label for="f-img">pictures (optional, up to 4, shrunk automatically)</label><input id="f-img" type="file" accept="image/*" multiple>
+        <div class="imgbox" id="f-imgs"></div>
         <p class="formerr" id="f-imgerr"></p></div>
       <div class="field full"><label for="f-urls">links</label><textarea id="f-urls" rows="3" placeholder="one link per line" autocomplete="off"></textarea></div>
       <div class="field full"><label for="f-note">detail</label><input id="f-note" type="text" maxlength="200" placeholder="size, colour, where to buy" autocomplete="off"></div>
@@ -337,7 +341,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   };
   var claimsOn = !!FIREBASE_CONFIG;
   var fb = null, claims = {}, authUser = null, pendingClaim = null;
-  var formImg = '';
+  var formImgs = [], MAX_PICS = 4;
   var ordering = false, drag = null;
   var DEF_PREFS = { style: 'app', mode: 'device', font: 'type', scheme: 'pink' };
   var PREF_OPTS = { style: ['app', 'text'], mode: ['device', 'light', 'dark'], font: ['type', 'clean', 'cursive', 'hand', 'serif'], scheme: ['pink', 'green', 'yellow', 'purple', 'blue'] };
@@ -379,12 +383,22 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         priority: PRI[x.priority] ? x.priority : 'want',
         tag: typeof x.tag === 'string' ? x.tag.trim().slice(0, 30) : '',
         repeat: x.repeat === 'item' || x.repeat === 'tag' ? x.repeat : '',
-        img: typeof x.img === 'string' && (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(x.img) && x.img.length < 600000 || /^img\/[a-z0-9-]+\.(jpg|png|webp)(\?v=[a-f0-9]+)?$/.test(x.img)) ? x.img : '',
+        imgs: normImgs(x),
         got: !!x.got,
         example: !!x.example
       });
     });
     return out;
+  }
+  // A picture is a small data URL, or (on this GitHub copy) a file in img/. Old items kept a single picture in "img", so that is still read.
+  function okImg(s) {
+    if (typeof s !== 'string') return false;
+    if (/^img\/[a-z0-9-]+\.(jpg|png|webp)(\?v=[a-f0-9]+)?$/.test(s)) return true;
+    return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(s) && s.length < 600000;
+  }
+  function normImgs(x) {
+    var list = Array.isArray(x.imgs) ? x.imgs : (x.img ? [x.img] : []);
+    return list.filter(okImg).slice(0, MAX_PICS);
   }
   function money(n) {
     if (n == null || isNaN(n)) return 'price?';
@@ -528,7 +542,14 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     line.appendChild(el('span', 'lead'));
     line.appendChild(el('span', 'price', priceText(x)));
     body.appendChild(line);
-    if (x.img) { var pic = el('img', 'pic'); pic.src = x.img; pic.alt = x.name; pic.loading = 'lazy'; pic.decoding = 'async'; body.appendChild(pic); }
+    if (x.imgs.length) {
+      var pics = el('div', 'pics' + (x.imgs.length > 1 ? ' multi' : ''));
+      x.imgs.forEach(function (src, i) {
+        var pic = el('img', 'pic'); pic.src = src; pic.alt = x.name + (x.imgs.length > 1 ? ' (' + (i + 1) + ')' : ''); pic.loading = 'lazy'; pic.decoding = 'async';
+        pics.appendChild(pic);
+      });
+      body.appendChild(pics);
+    }
     var dl = el('dl', 'details');
     function detail(label, value) {
       dl.appendChild(el('dt', null, label));
@@ -724,7 +745,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     $('f-pri').value = item ? item.priority : 'want';
     $('f-tag').value = item ? (item.tag || '') : '';
     $('f-rep').value = item ? (item.repeat || '') : '';
-    formImg = item ? (item.img || '') : '';
+    formImgs = item ? item.imgs.slice() : [];
     $('f-img').value = ''; $('f-imgerr').textContent = ''; showImgPrev();
     $('f-urls').value = item ? item.urls.join('\n') : '';
     $('f-note').value = item ? item.note : '';
@@ -749,7 +770,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     });
     if (bad) { $('formerr').textContent = 'One of the links does not look right. Put one full address on each line.'; $('f-urls').focus(); return; }
     if (urls.length > 10) { $('formerr').textContent = 'Up to 10 links per item.'; $('f-urls').focus(); return; }
-    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value, tag: $('f-tag').value.trim().slice(0, 30), repeat: $('f-rep').value, img: formImg };
+    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value, tag: $('f-tag').value.trim().slice(0, 30), repeat: $('f-rep').value, imgs: formImgs };
     if (editId) {
       data.items.forEach(function (x) { if (x.id === editId) { Object.assign(x, fields); x.example = false; } });
     } else {
@@ -822,11 +843,25 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     });
   });
 
+  // Shows the pictures chosen so far, each with its own Remove button.
   function showImgPrev() {
-    $('f-imgprev').hidden = !formImg;
-    $('f-imgdel').hidden = !formImg;
-    if (formImg) $('f-imgprev').src = formImg; else $('f-imgprev').removeAttribute('src');
+    var box = $('f-imgs');
+    box.textContent = '';
+    formImgs.forEach(function (src, i) {
+      var t = el('div', 'thumb');
+      var im = el('img'); im.src = src; im.alt = 'Picture ' + (i + 1);
+      var b = el('button', 'btn small', 'Remove'); b.type = 'button';
+      b.addEventListener('click', function () { formImgs.splice(i, 1); showImgPrev(); });
+      t.appendChild(im); t.appendChild(b);
+      box.appendChild(t);
+    });
   }
+
+  // Makes a picture as small as possible while it still looks clear:
+  // longest side 720px (the page shows pictures at about 220px, so it stays sharp on phones),
+  // WebP when this browser can make it (smaller than JPEG), otherwise JPEG.
+  // It lowers the quality step by step, then the size, until the file is about 45 KB or less.
+  var TARGET = 60000;                  // characters in the data URL, about 45 KB of picture
   function shrinkImage(file) {
     return new Promise(function (resolve, reject) {
       var rd = new FileReader();
@@ -835,32 +870,48 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         var im = new Image();
         im.onerror = function () { reject(new Error('decode')); };
         im.onload = function () {
-          var max = 600, w = im.naturalWidth, h = im.naturalHeight;
-          var k = Math.min(1, max / Math.max(w, h));
-          var c = document.createElement('canvas');
-          c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
-          var g = c.getContext('2d');
-          g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, c.width, c.height);
-          g.drawImage(im, 0, 0, c.width, c.height);
-          var q = 0.8, out = c.toDataURL('image/jpeg', q);
-          while (out.length > 250000 && q > 0.4) { q -= 0.1; out = c.toDataURL('image/jpeg', q); }
-          resolve(out);
+          var c = document.createElement('canvas'), g = c.getContext('2d');
+          var type = c.toDataURL('image/webp', 0.8).indexOf('data:image/webp') === 0 ? 'image/webp' : 'image/jpeg';
+          var max = 720, best = '';
+          while (true) {
+            var k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
+            c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k));
+            g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, c.width, c.height);   // see-through pictures get a white background
+            g.drawImage(im, 0, 0, c.width, c.height);
+            for (var q = 0.82; q >= 0.5; q -= 0.08) {
+              best = c.toDataURL(type, q);
+              if (best.length <= TARGET) return resolve(best);
+            }
+            if (max <= 480) break;      // already small, stop shrinking
+            max = Math.round(max * 0.85);
+          }
+          resolve(best);
         };
         im.src = rd.result;
       };
       rd.readAsDataURL(file);
     });
   }
+
   $('f-img').addEventListener('change', function () {
-    var f = $('f-img').files && $('f-img').files[0];
+    var files = Array.prototype.slice.call($('f-img').files || []);
     $('f-imgerr').textContent = '';
-    if (!f) return;
-    if (!/^image\//.test(f.type)) { $('f-imgerr').textContent = 'That file is not a picture.'; return; }
-    $('f-imgerr').textContent = 'Loading picture…';
-    shrinkImage(f).then(function (d) { formImg = d; $('f-imgerr').textContent = ''; showImgPrev(); },
-      function () { $('f-imgerr').textContent = 'Could not open that picture. Try a JPG or PNG.'; });
+    if (!files.length) return;
+    var room = MAX_PICS - formImgs.length;
+    if (room <= 0) { $('f-imgerr').textContent = 'Up to ' + MAX_PICS + ' pictures per item. Remove one first.'; $('f-img').value = ''; return; }
+    var skipped = files.length > room;
+    files = files.slice(0, room).filter(function (f) { return /^image\//.test(f.type); });
+    if (!files.length) { $('f-imgerr').textContent = 'That file is not a picture.'; $('f-img').value = ''; return; }
+    $('f-imgerr').textContent = 'Shrinking…';
+    // one after another, so a phone does not run out of memory
+    files.reduce(function (p, f) {
+      return p.then(function () { return shrinkImage(f).then(function (d) { formImgs.push(d); showImgPrev(); }); });
+    }, Promise.resolve()).then(function () {
+      var kb = formImgs.map(function (d) { return Math.round(d.length * 0.75 / 1024); });
+      $('f-imgerr').textContent = (skipped ? 'Only the first ' + room + ' were added (max ' + MAX_PICS + '). ' : '') + 'Picture sizes: ' + kb.join(', ') + ' KB';
+      $('f-img').value = '';
+    }, function () { $('f-imgerr').textContent = 'Could not open one of those pictures. Try a JPG or PNG.'; $('f-img').value = ''; });
   });
-  $('f-imgdel').addEventListener('click', function () { formImg = ''; $('f-img').value = ''; showImgPrev(); });
 
   function load() {
     return fetch('wishlist.json', { cache: 'no-store' }).then(function (r) {
