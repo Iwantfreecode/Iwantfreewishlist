@@ -241,6 +241,9 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         <option value="new">newest first</option>
       </select>
     </label>
+    <label class="sortlabel" for="tagfilter" id="tagwrap" hidden>tag
+      <select id="tagfilter"></select>
+    </label>
     <button class="btn small" id="copyBtn" type="button">Copy list</button>
     <button class="btn small" id="editToggle" type="button" hidden>Edit list</button>
   </div>
@@ -268,9 +271,10 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       <div class="field full"><label for="f-name">item</label><input id="f-name" type="text" maxlength="120" placeholder="What do you want?" autocomplete="off"></div>
       <div class="field full"><label for="f-price">price (one number, a range, or around)</label><input id="f-price" type="text" placeholder="1200  or  1000-1500  or  around 1500" autocomplete="off"></div>
       <div class="field full"><label for="f-pri">priority</label>
-        <select id="f-pri"><option value="must">must have</option><option value="want" selected>want</option><option value="someday">someday</option><option value="essential">essential (everyday stuff)</option></select>
+        <select id="f-pri"><option value="must">must have</option><option value="should">should have</option><option value="want" selected>want</option><option value="someday">someday</option><option value="essential">essential (everyday stuff)</option></select>
       </div>
       <div class="field full"><label for="f-tag">tag (optional, same tag = same kind of gift)</label><input id="f-tag" type="text" maxlength="30" placeholder="e.g. slides" autocomplete="off"></div>
+      <div class="field full"><label for="f-rep">can friends pick more than one of this kind?</label><select id="f-rep"><option value="">no, warn if the same tag is already picked</option><option value="item">yes, just this item</option><option value="tag">yes, the whole tag (every item with this tag)</option></select></div>
       <div class="field full"><label for="f-img">picture (optional)</label><input id="f-img" type="file" accept="image/*">
         <div class="imgbox"><img id="f-imgprev" alt="Picture preview" hidden><button class="btn small" id="f-imgdel" type="button" hidden>Remove picture</button></div>
         <p class="formerr" id="f-imgerr"></p></div>
@@ -316,7 +320,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 <script>
 (function () {
   'use strict';
-  var PRI = { must: { label: 'Must have', rank: 0 }, want: { label: 'Want', rank: 1 }, someday: { label: 'Someday', rank: 2 }, essential: { label: 'Essential (everyday stuff)', rank: 3 } };
+  var PRI = { must: { label: 'Must have', rank: 0 }, should: { label: 'Should have', rank: 1 }, want: { label: 'Want', rank: 2 }, someday: { label: 'Someday', rank: 3 }, essential: { label: 'Essential (everyday stuff)', rank: 4 } };
   var CURRENCIES = ['THB', 'USD', 'EUR', 'GBP', 'JPY'];
   var PENDING_KEY = 'wishlist-pending';
   var $ = function (id) { return document.getElementById(id); };
@@ -338,7 +342,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   var DEF_PREFS = { style: 'app', mode: 'device', font: 'type', scheme: 'pink' };
   var PREF_OPTS = { style: ['app', 'text'], mode: ['device', 'light', 'dark'], font: ['type', 'clean', 'cursive', 'hand', 'serif'], scheme: ['pink', 'green', 'yellow', 'purple', 'blue'] };
   var prefs = Object.assign({}, DEF_PREFS), prefsTimer = 0, prefsUid = null;
-  var filter = 'all', sort = 'priority', editId = null, delId = null, delTimer = 0, statusTimer = 0;
+  var filter = 'all', sort = 'priority', tagSel = '', editId = null, delId = null, delTimer = 0, statusTimer = 0;
 
   function uid() {
     try { if (crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
@@ -374,6 +378,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         note: typeof x.note === 'string' ? x.note.slice(0, 200) : '',
         priority: PRI[x.priority] ? x.priority : 'want',
         tag: typeof x.tag === 'string' ? x.tag.trim().slice(0, 30) : '',
+        repeat: x.repeat === 'item' || x.repeat === 'tag' ? x.repeat : '',
         img: typeof x.img === 'string' && (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(x.img) && x.img.length < 600000 || /^img\/[a-z0-9-]+\.(jpg|png|webp)(\?v=[a-f0-9]+)?$/.test(x.img)) ? x.img : '',
         got: !!x.got,
         example: !!x.example
@@ -437,6 +442,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     var idx = {};
     data.items.forEach(function (x, i) { idx[x.id] = i; });
     var it = data.items.filter(function (x) {
+      if (tagSel && tagKey(x) !== tagSel) return false;     // tag filter works together with the priority chips
       if (filter === 'all') return true;
       if (filter === 'got') return x.got;
       return x.priority === filter;
@@ -471,10 +477,29 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     s.appendChild(document.createTextNode(' still to get. ' + left.length + ' left, ' + (n - left.length) + ' got.'));
   }
 
+  // The tag dropdown: every tag in the list with how many items use it.
+  function renderTagFilter() {
+    var seen = {}, list = [];
+    data.items.forEach(function (x) {
+      var k = tagKey(x);
+      if (!k) return;
+      if (!seen[k]) { seen[k] = { key: k, label: x.tag, n: 0 }; list.push(seen[k]); }
+      seen[k].n++;
+    });
+    list.sort(function (a, b) { return a.label.localeCompare(b.label); });
+    if (tagSel && !seen[tagSel]) tagSel = '';
+    var sel = $('tagfilter');
+    sel.textContent = '';
+    var all = el('option', null, 'all tags'); all.value = ''; sel.appendChild(all);
+    list.forEach(function (t) { var o = el('option', null, t.label + ' (' + t.n + ')'); o.value = t.key; sel.appendChild(o); });
+    sel.value = tagSel;
+    $('tagwrap').hidden = !list.length;
+  }
+
   function renderChips() {
     var wrap = $('chips');
     wrap.textContent = '';
-    var defs = [['all', 'all'], ['must', 'must have'], ['want', 'want'], ['someday', 'someday'], ['essential', 'essentials'], ['got', 'got']];
+    var defs = [['all', 'all'], ['must', 'must have'], ['should', 'should have'], ['want', 'want'], ['someday', 'someday'], ['essential', 'essentials'], ['got', 'got']];
     defs.forEach(function (d) {
       var count = data.items.filter(function (x) {
         return d[0] === 'all' ? true : d[0] === 'got' ? x.got : x.priority === d[0];
@@ -573,7 +598,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   function renderOrder() {
     var box = $('orderlist');
     box.textContent = '';
-    ['must', 'want', 'someday', 'essential'].forEach(function (p) {
+    ['must', 'should', 'want', 'someday', 'essential'].forEach(function (p) {
       var items = data.items.filter(function (x) { return x.priority === p; });
       if (!items.length) return;
       var sec = el('section', 'ro-group');
@@ -684,6 +709,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     document.title = data.title || 'My Wishlist';
     renderSummary();
     renderChips();
+    renderTagFilter();
     renderList();
     renderSavebar();
     renderClaimbar();
@@ -697,6 +723,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     $('f-price').value = item ? priceInput(item) : '';
     $('f-pri').value = item ? item.priority : 'want';
     $('f-tag').value = item ? (item.tag || '') : '';
+    $('f-rep').value = item ? (item.repeat || '') : '';
     formImg = item ? (item.img || '') : '';
     $('f-img').value = ''; $('f-imgerr').textContent = ''; showImgPrev();
     $('f-urls').value = item ? item.urls.join('\n') : '';
@@ -722,7 +749,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     });
     if (bad) { $('formerr').textContent = 'One of the links does not look right. Put one full address on each line.'; $('f-urls').focus(); return; }
     if (urls.length > 10) { $('formerr').textContent = 'Up to 10 links per item.'; $('f-urls').focus(); return; }
-    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value, tag: $('f-tag').value.trim().slice(0, 30), img: formImg };
+    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value, tag: $('f-tag').value.trim().slice(0, 30), repeat: $('f-rep').value, img: formImg };
     if (editId) {
       data.items.forEach(function (x) { if (x.id === editId) { Object.assign(x, fields); x.example = false; } });
     } else {
@@ -745,6 +772,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   });
   $('editToggle').addEventListener('click', function () { editing = !editing; render(); });
   $('sort').addEventListener('change', function () { sort = $('sort').value; render(); });
+  $('tagfilter').addEventListener('change', function () { tagSel = $('tagfilter').value; render(); });
   $('currency').addEventListener('change', function () { data.currency = $('currency').value; touch(); });
   $('title').addEventListener('input', function () {
     data.title = $('title').value.slice(0, 60) || 'My Wishlist';
@@ -872,12 +900,19 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   }
 
   function tagKey(x) { return String(x.tag || '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' '); }
+  // Does picking this item skip the same-tag warning? Yes if the item itself repeats,
+  // or if any item with the same tag is set to make the whole tag repeat.
+  function tagRepeats(item) {
+    if (item.repeat === 'item') return true;
+    var k = tagKey(item);
+    return !!k && data.items.some(function (y) { return y.repeat === 'tag' && tagKey(y) === k; });
+  }
   function sameTagClaims(item, u) {
     var k = tagKey(item);
-    if (!k) return [];
+    if (!k || tagRepeats(item)) return [];     // a repeatable item or tag never warns
     return data.items.filter(function (y) {
       var c = claims[y.id];
-      return y.id !== item.id && tagKey(y) === k && c && c.by !== u.uid;
+      return y.id !== item.id && y.repeat !== 'item' && tagKey(y) === k && c && c.by !== u.uid;
     }).map(function (y) { return { name: y.name, status: claims[y.id].status }; });
   }
   function closeWarn() { $('warn').hidden = true; }
@@ -1139,7 +1174,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     // A white cover sits over each part of the page until a cursor finishes building it.
     function scan() {                  // cover any part of the page that has no cover yet
       // Big parts first (the card), then each small part inside an item: name, price, picture, each detail label and value, buttons.
-      document.querySelectorAll('.title, .summary, .tools .f, .tools .sortlabel, .tools .btn, .row, .row .name, .row .price, .row .pic, .row .details dt, .row .actions').forEach(function (el) {
+      document.querySelectorAll('.summary, .tools .f, .tools .sortlabel, .tools .btn, .row, .row .name, .row .price, .row .pic, .row .details dt, .row .actions').forEach(function (el) {
         if (el.__sw) return;
         if (el.getBoundingClientRect().height <= 4) return;
         var cv = document.createElement('div');
@@ -1148,7 +1183,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         el.__sw = true;
         targets.push({ el: el, cover: cv, x: -1, y: -1, w: 0, h: 0, claimed: false, done: false,
           el2: el.tagName === 'DT' ? el.nextElementSibling : null,         // a detail label is built together with its value
-          k: el.matches('.title, .summary, .row') ? 1 : 0.4 });            // k: small parts build faster
+          k: el.matches('.summary, .row') ? 1 : 0.4 });            // k: small parts build faster
       });
     }
     function sync() {                  // keep every cover glued to its part of the page, top to bottom

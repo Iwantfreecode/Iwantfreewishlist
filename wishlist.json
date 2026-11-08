@@ -16,6 +16,7 @@
       "note": "Pink > White",
       "priority": "want",
       "tag": "headphones",
+      "repeat": "",
       "img": "img/ec4b5eba-5d94-41ce-b2d9-49a23557a13e.jpg?v=0752ac37",
       "got": false,
       "example": false
@@ -33,6 +34,7 @@
       "note": "Carbon fiber > Grey",
       "priority": "must",
       "tag": "wallet",
+      "repeat": "",
       "img": "img/84ef6550-9b64-40f4-b52f-820af3f593ca.jpg?v=a80070f8",
       "got": false,
       "example": false
@@ -49,6 +51,7 @@
       "note": "Color:TARTANCHECK, STEEL GRAY, or anything(i love this brand) Size:4(prefer), 3",
       "priority": "must",
       "tag": "slides",
+      "repeat": "",
       "img": "img/98e77141-4b3e-4ba9-8e21-74d9e4fecb65.jpg?v=18a76abc",
       "got": false,
       "example": false
@@ -65,6 +68,7 @@
       "note": "Horizon-black with mag safe pls c: and money clip would be great",
       "priority": "want",
       "tag": "Wallet",
+      "repeat": "",
       "img": "img/6253bdac-4635-44f6-92c4-293b961c713c.jpg?v=97888446",
       "got": false,
       "example": false
@@ -79,6 +83,7 @@
       "note": "it’s in japan c:",
       "priority": "essential",
       "tag": "",
+      "repeat": "",
       "img": "",
       "got": false,
       "example": false
@@ -96,6 +101,7 @@
       "note": "Black",
       "priority": "want",
       "tag": "wallet",
+      "repeat": "",
       "img": "img/feb75d6f-a25c-47d4-bdf7-a254d5d2d25e.jpg?v=63262045",
       "got": false,
       "example": false
@@ -113,6 +119,7 @@
       "note": "any puffer one with a Rope would be good c:",
       "priority": "must",
       "tag": "bag",
+      "repeat": "",
       "img": "img/d5fb8c11-0658-46b1-83e3-a6ca04d2e77e.jpg?v=4d011e6f",
       "got": false,
       "example": false
@@ -129,6 +136,7 @@
       "note": "The U space or U space Plus Color: Black > Pink > Beige",
       "priority": "must",
       "tag": "Laptop bag",
+      "repeat": "",
       "img": "img/fe5dac3f-19d8-40c7-8da7-3beaf4fc0acd.jpg?v=33d4744f",
       "got": false,
       "example": false
@@ -145,6 +153,7 @@
       "note": "Color: Black. Size: US-12men",
       "priority": "want",
       "tag": "slides",
+      "repeat": "",
       "img": "",
       "got": false,
       "example": false
@@ -159,6 +168,7 @@
       "note": "Color: Black chrome, Blackened Blue, any black or white. Size: US-12men",
       "priority": "want",
       "tag": "slides",
+      "repeat": "",
       "img": "",
       "got": false,
       "example": false
@@ -173,6 +183,7 @@
       "note": "Size US12men",
       "priority": "someday",
       "tag": "",
+      "repeat": "",
       "img": "",
       "got": false,
       "example": false
@@ -189,6 +200,7 @@
       "note": "keychain figure sum like that c:",
       "priority": "someday",
       "tag": "",
+      "repeat": "",
       "img": "",
       "got": false,
       "example": false
@@ -203,6 +215,7 @@
       "note": "Onyx color",
       "priority": "want",
       "tag": "slides",
+      "repeat": "",
       "img": "img/b072fbe4-656f-4431-b4be-77c863855d64.jpg?v=25ed2f45",
       "got": false,
       "example": false
@@ -217,9 +230,10 @@
         "https://bevisgear.com/products/the-top-shelf"
       ],
       "note": "",
-      "priority": "want",
+      "priority": "must",
       "tag": "laptop bag",
-      "img": "",
+      "repeat": "",
+      "img": "img/bb3265b8-e32e-47f9-8769-f4cc134e7c65.jpg?v=ee632ea1",
       "got": false,
       "example": false
     },
@@ -235,6 +249,7 @@
       "note": "color: black",
       "priority": "must",
       "tag": "laptop bag",
+      "repeat": "",
       "img": "img/77e13897-2626-4343-aaa4-90b69d1075bf.jpg?v=8ac7b28c",
       "got": false,
       "example": false
@@ -251,6 +266,7 @@
       "note": "color: black",
       "priority": "want",
       "tag": "laptop bag",
+      "repeat": "",
       "img": "img/a11d464a-d1ab-4e57-b3d6-b54880ed5c82.jpg?v=805aa194",
       "got": false,
       "example": false
@@ -265,6 +281,7 @@
       "note": "Anything that i can play game and run my simulation/code (Preferably Laptop)",
       "priority": "must",
       "tag": "",
+      "repeat": "",
       "img": "",
       "got": false,
       "example": false
@@ -281,6 +298,7 @@
       "note": "",
       "priority": "want",
       "tag": "laptop bag",
+      "repeat": "",
       "img": "img/a7df54a6-e1c4-48e7-b104-da3d33669e87.jpg?v=fd34aa25",
       "got": false,
       "example": false
@@ -297,6 +315,7 @@
       "note": "color: black",
       "priority": "want",
       "tag": "travel bag",
+      "repeat": "",
       "img": "img/bf260409-564a-461f-8713-816074ab10ed.jpg?v=be9a291a",
       "got": false,
       "example": false
@@ -313,6 +332,7 @@
       "note": "color: black",
       "priority": "must",
       "tag": "travel bag",
+      "repeat": "",
       "img": "img/00fcd8ea-0499-44ef-a3ac-3363816fde02.jpg?v=e4fb24df",
       "got": false,
       "example": false
@@ -329,6 +349,7 @@
       "note": "color: black",
       "priority": "want",
       "tag": "travel bag",
+      "repeat": "",
       "img": "img/3ce33a02-26ed-4822-bccf-412dc86ce340.jpg?v=db05051b",
       "got": false,
       "example": false
@@ -344,7 +365,8 @@
       ],
       "note": "",
       "priority": "want",
-      "tag": "laptop bag",
+      "tag": "travel bag",
+      "repeat": "",
       "img": "img/096fae23-df88-4131-b8ce-b511401d329b.jpg?v=4816dd5e",
       "got": false,
       "example": false
@@ -361,6 +383,7 @@
       "note": "Size: shoes-USmen12-UKmen11 shirt-2xl or xl",
       "priority": "want",
       "tag": "",
+      "repeat": "",
       "img": "",
       "got": false,
       "example": false
@@ -375,6 +398,7 @@
       "note": "Any with a magsafe that’s safe",
       "priority": "want",
       "tag": "",
+      "repeat": "",
       "img": "",
       "got": false,
       "example": false
@@ -391,6 +415,7 @@
       "note": "color: black",
       "priority": "must",
       "tag": "travel bag",
+      "repeat": "",
       "img": "img/7208983f-ad2f-48cf-8574-05015ddd9a00.jpg?v=2e410500",
       "got": false,
       "example": false
@@ -407,14 +432,13 @@
       "note": "",
       "priority": "want",
       "tag": "cologne",
+      "repeat": "",
       "img": "img/8971a02a-154c-41f4-82d8-574e3cc978c4.jpg?v=94263602",
       "got": false,
       "example": false
     },
     {
       "id": "a0360a40-66de-4b29-aa71-e9c18276a87d",
-      "got": false,
-      "example": false,
       "name": "kilian angels share",
       "price": 10000,
       "priceMax": null,
@@ -425,7 +449,61 @@
       "note": "",
       "priority": "want",
       "tag": "cologne",
-      "img": "img/a0360a40-66de-4b29-aa71-e9c18276a87d.jpg?v=4c704d08"
+      "repeat": "",
+      "img": "img/a0360a40-66de-4b29-aa71-e9c18276a87d.jpg?v=4c704d08",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "6471bfb2-0c25-4b8e-9b79-0639b2cff01c",
+      "name": "Body cam",
+      "price": 680,
+      "priceMax": null,
+      "approx": false,
+      "urls": [
+        "https://store.steampowered.com/app/2406770/Bodycam/"
+      ],
+      "note": "",
+      "priority": "must",
+      "tag": "game",
+      "repeat": "tag",
+      "img": "img/6471bfb2-0c25-4b8e-9b79-0639b2cff01c.jpg?v=d32ca272",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "6bd92103-5123-46f3-afee-ba102896cbf3",
+      "name": "Uncut",
+      "price": null,
+      "priceMax": null,
+      "approx": false,
+      "urls": [
+        "https://store.steampowered.com/app/4959400/UNCUT/"
+      ],
+      "note": "",
+      "priority": "want",
+      "tag": "game",
+      "repeat": "",
+      "img": "img/6bd92103-5123-46f3-afee-ba102896cbf3.jpg?v=ec9091c7",
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "dc5b822e-e069-4ba2-9136-6ff264d6489e",
+      "got": false,
+      "example": false,
+      "name": "Hot Shot Tote",
+      "price": 3300,
+      "priceMax": null,
+      "approx": true,
+      "urls": [
+        "https://www.thenorthface.com/en-us/p/bags-and-gear/bags/messengers-and-totes-829876/hot-shot-tote-NF0A8JCF?color=SM4&size=OS"
+      ],
+      "note": "color: white or black",
+      "priority": "must",
+      "tag": "laptop bag",
+      "repeat": "",
+      "img": "img/dc5b822e-e069-4ba2-9136-6ff264d6489e.jpg?v=9409eb6b"
     }
   ]
 }
