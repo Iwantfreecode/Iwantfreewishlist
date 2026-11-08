@@ -124,6 +124,9 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 .dialog p { margin: 0 0 10px; }
 .dialog ul { margin: 0 0 14px; padding-left: 20px; color: var(--muted); }
 .tagline { background: var(--tag); color: #FFFFFF; padding: 0 6px; }
+.taglist { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.tagnote { margin-top: 6px; padding: 4px 8px; border: 1px dashed var(--muted); color: var(--muted); font-size: 14px; }
+:root[data-style="app"] .tagnote { border-radius: 8px; }
 .pic { display: block; width: 220px; max-width: 100%; height: auto; margin: 8px 0 0; border: 1px solid var(--line); }
 .imgbox { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
 .imgbox img { width: 120px; max-width: 100%; height: auto; border: 1px solid var(--line); }
@@ -277,8 +280,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       <div class="field full"><label for="f-pri">priority</label>
         <select id="f-pri"><option value="must">must have</option><option value="should">need this</option><option value="want" selected>want</option><option value="someday">someday</option><option value="essential">essential (everyday stuff)</option></select>
       </div>
-      <div class="field full"><label for="f-tag">tag (optional, same tag = same kind of gift)</label><input id="f-tag" type="text" maxlength="30" placeholder="e.g. slides" autocomplete="off"></div>
-      <div class="field full"><label for="f-rep">can friends pick more than one of this kind?</label><select id="f-rep"><option value="">no, warn if the same tag is already picked</option><option value="item">yes, just this item</option><option value="tag">yes, the whole tag (every item with this tag)</option></select></div>
+      <div class="field full"><label for="f-tag">tags (optional, separate with commas, up to 5)</label><input id="f-tag" type="text" maxlength="170" placeholder="e.g. wallet, black" autocomplete="off"></div>
+      <div class="field full"><label for="f-rep">can friends pick more than one of this kind?</label><select id="f-rep"><option value="">no, warn if the same tag is already picked</option><option value="item">yes, just this item</option><option value="tag">yes, the whole tag (the first tag you list, for every item that has it)</option></select></div>
       <div class="field full"><label for="f-img">pictures (optional, up to 4, shrunk automatically)</label><input id="f-img" type="file" accept="image/*" multiple>
         <div class="imgbox" id="f-imgs"></div>
         <p class="formerr" id="f-imgerr"></p></div>
@@ -381,7 +384,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         urls: normUrls(x),
         note: typeof x.note === 'string' ? x.note.slice(0, 200) : '',
         priority: PRI[x.priority] ? x.priority : 'want',
-        tag: typeof x.tag === 'string' ? x.tag.trim().slice(0, 30) : '',
+        tags: normTags(x),
         repeat: x.repeat === 'item' || x.repeat === 'tag' ? x.repeat : '',
         imgs: normImgs(x),
         got: !!x.got,
@@ -399,6 +402,19 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   function normImgs(x) {
     var list = Array.isArray(x.imgs) ? x.imgs : (x.img ? [x.img] : []);
     return list.filter(okImg).slice(0, MAX_PICS);
+  }
+  // Tags: a list. Old items kept one tag in "tag", so that is still read. Up to 5 tags, 30 letters each, no repeats.
+  var MAX_TAGS = 5;
+  function normTags(x) {
+    var list = Array.isArray(x.tags) ? x.tags : (x.tag ? [x.tag] : []);
+    var seen = {}, out = [];
+    list.forEach(function (t) {
+      if (typeof t !== 'string') return;
+      t = t.trim().slice(0, 30);
+      var k = t.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ');
+      if (t && !seen[k] && out.length < MAX_TAGS) { seen[k] = true; out.push(t); }
+    });
+    return out;
   }
   function money(n) {
     if (n == null || isNaN(n)) return 'price?';
@@ -456,7 +472,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     var idx = {};
     data.items.forEach(function (x, i) { idx[x.id] = i; });
     var it = data.items.filter(function (x) {
-      if (tagSel && tagKey(x) !== tagSel) return false;     // tag filter works together with the priority chips
+      if (tagSel && tagKeys(x).indexOf(tagSel) < 0) return false;     // tag filter works together with the priority chips
       if (filter === 'all') return true;
       if (filter === 'got') return x.got;
       return x.priority === filter;
@@ -495,10 +511,12 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   function renderTagFilter() {
     var seen = {}, list = [];
     data.items.forEach(function (x) {
-      var k = tagKey(x);
-      if (!k) return;
-      if (!seen[k]) { seen[k] = { key: k, label: x.tag, n: 0 }; list.push(seen[k]); }
-      seen[k].n++;
+      x.tags.forEach(function (t) {
+        var k = normTag(t);
+        if (!k) return;
+        if (!seen[k]) { seen[k] = { key: k, label: t, n: 0 }; list.push(seen[k]); }
+        seen[k].n++;
+      });
     });
     list.sort(function (a, b) { return a.label.localeCompare(b.label); });
     if (tagSel && !seen[tagSel]) tagSel = '';
@@ -559,7 +577,11 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     }
     if (x.note) detail('detail', x.note);
     detail('priority', PRI[x.priority].label.toLowerCase());
-    if (x.tag) detail('tag', el('span', 'tagline', x.tag));
+    if (x.tags.length) {
+      var tl = el('span', 'taglist');
+      x.tags.forEach(function (t) { tl.appendChild(el('span', 'tagline', t)); });
+      detail(x.tags.length > 1 ? 'tags' : 'tag', tl);
+    }
     var valid = x.urls.map(function (raw) { return safeUrl(raw); }).filter(Boolean);
     if (valid.length) {
       var seen = {}, total = {}, linkrow = el('span', 'linkrow');
@@ -588,7 +610,14 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       } else {
         cs.appendChild(document.createTextNode(cl.status === 'bought' ? 'someone bought this' : 'someone is buying this'));
       }
-      detail('buying', cs);
+      var buyBox = el('div');
+      buyBox.appendChild(cs);
+      if (!cl) {       // a small note (not a pop-up) when someone is buying an item that shares a tag but is not the same kind
+        tagHits(x, authUser && authUser.uid).filter(function (h) { return !h.exact; }).slice(0, 3).forEach(function (h) {
+          buyBox.appendChild(el('div', 'tagnote', 'someone is buying a ' + h.name + ' item with the same ' + h.tags.join(', ') + (h.tags.length > 1 ? ' tags' : ' tag')));
+        });
+      }
+      detail('buying', buyBox);
     }
     body.appendChild(dl);
 
@@ -743,7 +772,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     $('f-name').value = item ? item.name : '';
     $('f-price').value = item ? priceInput(item) : '';
     $('f-pri').value = item ? item.priority : 'want';
-    $('f-tag').value = item ? (item.tag || '') : '';
+    $('f-tag').value = item ? item.tags.join(', ') : '';
     $('f-rep').value = item ? (item.repeat || '') : '';
     formImgs = item ? item.imgs.slice() : [];
     $('f-img').value = ''; $('f-imgerr').textContent = ''; showImgPrev();
@@ -770,7 +799,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     });
     if (bad) { $('formerr').textContent = 'One of the links does not look right. Put one full address on each line.'; $('f-urls').focus(); return; }
     if (urls.length > 10) { $('formerr').textContent = 'Up to 10 links per item.'; $('f-urls').focus(); return; }
-    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value, tag: $('f-tag').value.trim().slice(0, 30), repeat: $('f-rep').value, imgs: formImgs };
+    var fields = { name: name, price: pp.price, priceMax: pp.priceMax, approx: pp.approx, urls: urls, note: $('f-note').value.trim(), priority: $('f-pri').value, tags: normTags({ tags: $('f-tag').value.split(',') }), repeat: $('f-rep').value, imgs: formImgs };
     if (editId) {
       data.items.forEach(function (x) { if (x.id === editId) { Object.assign(x, fields); x.example = false; } });
     } else {
@@ -950,21 +979,37 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     return b;
   }
 
-  function tagKey(x) { return String(x.tag || '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' '); }
-  // Does picking this item skip the same-tag warning? Yes if the item itself repeats,
-  // or if any item with the same tag is set to make the whole tag repeat.
-  function tagRepeats(item) {
-    if (item.repeat === 'item') return true;
-    var k = tagKey(item);
-    return !!k && data.items.some(function (y) { return y.repeat === 'tag' && tagKey(y) === k; });
+  // Two tags are the same when they match ignoring capital letters and extra spaces.
+  function normTag(t) { return String(t || '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' '); }
+  function tagKeys(x) { return x.tags.map(normTag); }
+  // Tags that repeat: the first tag of every item whose "can friends pick more than one" is "the whole tag".
+  function repeatingTags() {
+    var set = {};
+    data.items.forEach(function (y) { if (y.repeat === 'tag' && y.tags.length) set[normTag(y.tags[0])] = true; });
+    return set;
   }
-  function sameTagClaims(item, u) {
-    var k = tagKey(item);
-    if (!k || tagRepeats(item)) return [];     // a repeatable item or tag never warns
-    return data.items.filter(function (y) {
+  // Other people's picks that share a tag with this item.
+  //   exact: true  = both items have exactly the same tags (big warning when ticking)
+  //   exact: false = they share some tags, but each has other tags too (small note under the tick)
+  // A repeating item or tag never counts.
+  function tagHits(item, uid) {
+    var mine = tagKeys(item);
+    if (!mine.length || item.repeat === 'item') return [];
+    var rep = repeatingTags();
+    var out = [];
+    data.items.forEach(function (y) {
       var c = claims[y.id];
-      return y.id !== item.id && y.repeat !== 'item' && tagKey(y) === k && c && c.by !== u.uid;
-    }).map(function (y) { return { name: y.name, status: claims[y.id].status }; });
+      if (y.id === item.id || y.repeat === 'item' || !c || (uid && c.by === uid)) return;
+      var theirs = tagKeys(y);
+      var shared = mine.filter(function (k) { return theirs.indexOf(k) >= 0 && !rep[k]; });
+      if (!shared.length) return;
+      var exact = mine.length === theirs.length && mine.every(function (k) { return theirs.indexOf(k) >= 0; });
+      out.push({ name: y.name, status: c.status, exact: exact, tags: shared.map(function (k) { return y.tags[theirs.indexOf(k)]; }) });
+    });
+    return out;
+  }
+  function sameTagClaims(item, u) {      // only the exact matches get the big warning
+    return tagHits(item, u.uid).filter(function (h) { return h.exact; });
   }
   function closeWarn() { $('warn').hidden = true; }
   function showWarn(item, hits) {
