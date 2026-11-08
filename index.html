@@ -613,7 +613,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       var buyBox = el('div');
       buyBox.appendChild(cs);
       if (!cl) {       // a small note (not a pop-up) when someone is buying an item that shares a tag but is not the same kind
-        tagHits(x, authUser && authUser.uid).filter(function (h) { return !h.exact; }).slice(0, 3).forEach(function (h) {
+        tagHits(x, authUser && authUser.uid).filter(function (h) { return !h.big; }).slice(0, 3).forEach(function (h) {
           buyBox.appendChild(el('div', 'tagnote', 'someone is buying a ' + h.name + ' item with the same ' + h.tags.join(', ') + (h.tags.length > 1 ? ' tags' : ' tag')));
         });
       }
@@ -989,8 +989,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     return set;
   }
   // Other people's picks that share a tag with this item.
-  //   exact: true  = both items have exactly the same tags (big warning when ticking)
-  //   exact: false = they share some tags, but each has other tags too (small note under the tick)
+  //   big: true  = the tags are the same, or all of one item's tags are inside the other's (big warning when ticking)
+  //   big: false = they share some tags, but each also has a tag the other lacks (small note under the tick)
   // A repeating item or tag never counts.
   function tagHits(item, uid) {
     var mine = tagKeys(item);
@@ -1003,13 +1003,13 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       var theirs = tagKeys(y);
       var shared = mine.filter(function (k) { return theirs.indexOf(k) >= 0 && !rep[k]; });
       if (!shared.length) return;
-      var exact = mine.length === theirs.length && mine.every(function (k) { return theirs.indexOf(k) >= 0; });
-      out.push({ name: y.name, status: c.status, exact: exact, tags: shared.map(function (k) { return y.tags[theirs.indexOf(k)]; }) });
+      var big = mine.every(function (k) { return theirs.indexOf(k) >= 0; }) || theirs.every(function (k) { return mine.indexOf(k) >= 0; });
+      out.push({ name: y.name, status: c.status, big: big, tags: shared.map(function (k) { return y.tags[theirs.indexOf(k)]; }) });
     });
     return out;
   }
-  function sameTagClaims(item, u) {      // only the exact matches get the big warning
-    return tagHits(item, u.uid).filter(function (h) { return h.exact; });
+  function sameTagClaims(item, u) {      // only the big matches get the big warning
+    return tagHits(item, u.uid).filter(function (h) { return h.big; });
   }
   function closeWarn() { $('warn').hidden = true; }
   function showWarn(item, hits) {
