@@ -15,7 +15,9 @@
       ],
       "note": "Pink > White",
       "priority": "want",
-      "tag": "headphones",
+      "tags": [
+        "headphones"
+      ],
       "repeat": "",
       "imgs": [
         "img/ec4b5eba-5d94-41ce-b2d9-49a23557a13e.jpg?v=0752ac37"
@@ -35,7 +37,9 @@
       ],
       "note": "Carbon fiber > Grey",
       "priority": "must",
-      "tag": "wallet",
+      "tags": [
+        "wallet"
+      ],
       "repeat": "",
       "imgs": [
         "img/84ef6550-9b64-40f4-b52f-820af3f593ca.jpg?v=a80070f8"
@@ -54,7 +58,9 @@
       ],
       "note": "Color:TARTANCHECK, STEEL GRAY, or anything(i love this brand) Size:4(prefer), 3",
       "priority": "must",
-      "tag": "slides",
+      "tags": [
+        "slides"
+      ],
       "repeat": "",
       "imgs": [
         "img/98e77141-4b3e-4ba9-8e21-74d9e4fecb65.jpg?v=18a76abc"
@@ -72,8 +78,10 @@
         "https://puncube.com/products/mech-wallet"
       ],
       "note": "Horizon-black with mag safe pls c: and money clip would be great",
-      "priority": "want",
-      "tag": "Wallet",
+      "priority": "should",
+      "tags": [
+        "Wallet"
+      ],
       "repeat": "",
       "imgs": [
         "img/6253bdac-4635-44f6-92c4-293b961c713c.jpg?v=97888446"
@@ -90,7 +98,7 @@
       "urls": [],
       "note": "it’s in japan c:",
       "priority": "essential",
-      "tag": "",
+      "tags": [],
       "repeat": "",
       "imgs": [],
       "got": false,
@@ -108,7 +116,9 @@
       ],
       "note": "Black",
       "priority": "want",
-      "tag": "wallet",
+      "tags": [
+        "wallet"
+      ],
       "repeat": "",
       "imgs": [
         "img/feb75d6f-a25c-47d4-bdf7-a254d5d2d25e.jpg?v=63262045"
@@ -128,7 +138,9 @@
       ],
       "note": "any puffer one with a Rope would be good c:",
       "priority": "should",
-      "tag": "bag",
+      "tags": [
+        "bag"
+      ],
       "repeat": "",
       "imgs": [
         "img/d5fb8c11-0658-46b1-83e3-a6ca04d2e77e.jpg?v=4d011e6f"
@@ -147,7 +159,9 @@
       ],
       "note": "The U space or U space Plus Color: Black > Pink > Beige",
       "priority": "must",
-      "tag": "Laptop bag",
+      "tags": [
+        "Laptop bag"
+      ],
       "repeat": "",
       "imgs": [
         "img/fe5dac3f-19d8-40c7-8da7-3beaf4fc0acd.jpg?v=33d4744f"
@@ -166,7 +180,9 @@
       ],
       "note": "Color: Black. Size: US-12men",
       "priority": "want",
-      "tag": "slides",
+      "tags": [
+        "slides"
+      ],
       "repeat": "",
       "imgs": [],
       "got": false,
@@ -181,7 +197,9 @@
       "urls": [],
       "note": "Color: Black chrome, Blackened Blue, any black or white. Size: US-12men",
       "priority": "want",
-      "tag": "slides",
+      "tags": [
+        "slides"
+      ],
       "repeat": "",
       "imgs": [],
       "got": false,
@@ -196,7 +214,7 @@
       "urls": [],
       "note": "Size US12men",
       "priority": "someday",
-      "tag": "",
+      "tags": [],
       "repeat": "",
       "imgs": [],
       "got": false,
@@ -213,7 +231,7 @@
       ],
       "note": "keychain figure sum like that c:",
       "priority": "someday",
-      "tag": "",
+      "tags": [],
       "repeat": "",
       "imgs": [],
       "got": false,
@@ -228,7 +246,9 @@
       "urls": [],
       "note": "Onyx color",
       "priority": "want",
-      "tag": "slides",
+      "tags": [
+        "slides"
+      ],
       "repeat": "",
       "imgs": [
         "img/b072fbe4-656f-4431-b4be-77c863855d64.jpg?v=25ed2f45"
@@ -245,27 +265,31 @@
       "urls": [],
       "note": "Anything that i can play game and run my simulation/code (Preferably Laptop)",
       "priority": "must",
-      "tag": "",
+      "tags": [],
       "repeat": "",
       "imgs": [],
       "got": false,
       "example": false
     },
     {
-      "id": "77e13897-2626-4343-aaa4-90b69d1075bf",
-      "name": "Veria Savvy Sling",
-      "price": 4000,
-      "priceMax": null,
-      "approx": true,
+      "id": "5bf59aec-63db-49f7-81a7-2bed1226f0e3",
+      "name": "THE SAVVY DUFFELPACK",
+      "price": 4500,
+      "priceMax": 5000,
+      "approx": false,
       "urls": [
-        "https://www.veriatravel.com/products/savvy-sling"
+        "https://www.veriatravel.com/products/the-islanders-savvy-duffel-backpack"
       ],
       "note": "color: black",
-      "priority": "should",
-      "tag": "laptop bag",
+      "priority": "must",
+      "tags": [
+        "duffle",
+        "travel bag"
+      ],
       "repeat": "",
       "imgs": [
-        "img/77e13897-2626-4343-aaa4-90b69d1075bf.jpg?v=8ac7b28c"
+        "img/5bf59aec-63db-49f7-81a7-2bed1226f0e3.jpg?v=079ad5ca",
+        "img/5bf59aec-63db-49f7-81a7-2bed1226f0e3-1.jpg?v=45144fae"
       ],
       "got": false,
       "example": false
@@ -281,7 +305,9 @@
       ],
       "note": "color: black",
       "priority": "want",
-      "tag": "laptop bag",
+      "tags": [
+        "laptop bag"
+      ],
       "repeat": "",
       "imgs": [
         "img/a11d464a-d1ab-4e57-b3d6-b54880ed5c82.jpg?v=805aa194"
@@ -300,7 +326,9 @@
       ],
       "note": "",
       "priority": "must",
-      "tag": "laptop bag",
+      "tags": [
+        "laptop bag"
+      ],
       "repeat": "",
       "imgs": [
         "img/bb3265b8-e32e-47f9-8769-f4cc134e7c65.jpg?v=ee632ea1"
@@ -319,7 +347,9 @@
       ],
       "note": "",
       "priority": "want",
-      "tag": "laptop bag",
+      "tags": [
+        "laptop bag"
+      ],
       "repeat": "",
       "imgs": [
         "img/a7df54a6-e1c4-48e7-b104-da3d33669e87.jpg?v=fd34aa25"
@@ -338,7 +368,9 @@
       ],
       "note": "color: black",
       "priority": "want",
-      "tag": "travel bag",
+      "tags": [
+        "travel bag"
+      ],
       "repeat": "",
       "imgs": [
         "img/bf260409-564a-461f-8713-816074ab10ed.jpg?v=be9a291a"
@@ -347,20 +379,25 @@
       "example": false
     },
     {
-      "id": "dc5b822e-e069-4ba2-9136-6ff264d6489e",
-      "name": "Hot Shot Tote",
-      "price": 3300,
-      "priceMax": null,
-      "approx": true,
+      "id": "e8635fe4-6198-420c-9d42-a35af8cd3bdc",
+      "name": "THE BACKPACK SAVVY",
+      "price": 5000,
+      "priceMax": 5500,
+      "approx": false,
       "urls": [
-        "https://www.thenorthface.com/en-us/p/bags-and-gear/bags/messengers-and-totes-829876/hot-shot-tote-NF0A8JCF?color=SM4&size=OS"
+        "https://www.veriatravel.com/products/the-backpack-islanders-savvy?variant=55130487488791",
+        "https://www.veriatravel.com/products/the-backpack-savvy-drifters-sleek"
       ],
-      "note": "color: white or black",
+      "note": "THE BACKPACK ISLANDERS SAVVY(prefer) color: Gray & Black / THE BACKPACK SAVVY SLEEK color: black",
       "priority": "must",
-      "tag": "laptop bag",
+      "tags": [
+        "laptop bag",
+        "travel bag"
+      ],
       "repeat": "",
       "imgs": [
-        "img/dc5b822e-e069-4ba2-9136-6ff264d6489e.jpg?v=9409eb6b"
+        "img/e8635fe4-6198-420c-9d42-a35af8cd3bdc.jpg?v=b0e45a89",
+        "img/e8635fe4-6198-420c-9d42-a35af8cd3bdc-1.jpg?v=6af2324e"
       ],
       "got": false,
       "example": false
@@ -376,7 +413,9 @@
       ],
       "note": "color: black",
       "priority": "want",
-      "tag": "travel bag",
+      "tags": [
+        "travel bag"
+      ],
       "repeat": "",
       "imgs": [
         "img/3ce33a02-26ed-4822-bccf-412dc86ce340.jpg?v=db05051b"
@@ -395,7 +434,9 @@
       ],
       "note": "",
       "priority": "want",
-      "tag": "travel bag",
+      "tags": [
+        "travel bag"
+      ],
       "repeat": "",
       "imgs": [
         "img/096fae23-df88-4131-b8ce-b511401d329b.jpg?v=4816dd5e"
@@ -414,7 +455,7 @@
       ],
       "note": "Size: shoes-USmen12-UKmen11 shirt-2xl or xl",
       "priority": "want",
-      "tag": "",
+      "tags": [],
       "repeat": "",
       "imgs": [],
       "got": false,
@@ -429,7 +470,7 @@
       "urls": [],
       "note": "Any with a magsafe that’s safe",
       "priority": "want",
-      "tag": "",
+      "tags": [],
       "repeat": "",
       "imgs": [],
       "got": false,
@@ -446,7 +487,10 @@
       ],
       "note": "color: black",
       "priority": "should",
-      "tag": "travel bag",
+      "tags": [
+        "travel bag",
+        "duffle"
+      ],
       "repeat": "",
       "imgs": [
         "img/7208983f-ad2f-48cf-8574-05015ddd9a00.jpg?v=2e410500"
@@ -465,7 +509,9 @@
       ],
       "note": "",
       "priority": "want",
-      "tag": "cologne",
+      "tags": [
+        "cologne"
+      ],
       "repeat": "",
       "imgs": [
         "img/8971a02a-154c-41f4-82d8-574e3cc978c4.jpg?v=94263602"
@@ -484,7 +530,9 @@
       ],
       "note": "",
       "priority": "want",
-      "tag": "cologne",
+      "tags": [
+        "cologne"
+      ],
       "repeat": "",
       "imgs": [
         "img/a0360a40-66de-4b29-aa71-e9c18276a87d.jpg?v=4c704d08"
@@ -503,7 +551,9 @@
       ],
       "note": "",
       "priority": "should",
-      "tag": "game",
+      "tags": [
+        "game"
+      ],
       "repeat": "tag",
       "imgs": [
         "img/6471bfb2-0c25-4b8e-9b79-0639b2cff01c.jpg?v=d32ca272"
@@ -522,7 +572,9 @@
       ],
       "note": "",
       "priority": "want",
-      "tag": "game",
+      "tags": [
+        "game"
+      ],
       "repeat": "",
       "imgs": [
         "img/6bd92103-5123-46f3-afee-ba102896cbf3.jpg?v=ec9091c7"
@@ -541,10 +593,57 @@
       ],
       "note": "color: black",
       "priority": "should",
-      "tag": "travel bag",
+      "tags": [
+        "travel bag"
+      ],
       "repeat": "",
       "imgs": [
         "img/00fcd8ea-0499-44ef-a3ac-3363816fde02.jpg?v=e4fb24df"
+      ],
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "dc5b822e-e069-4ba2-9136-6ff264d6489e",
+      "name": "Hot Shot Tote",
+      "price": 3300,
+      "priceMax": null,
+      "approx": true,
+      "urls": [
+        "https://www.thenorthface.com/en-us/p/bags-and-gear/bags/messengers-and-totes-829876/hot-shot-tote-NF0A8JCF?color=SM4&size=OS"
+      ],
+      "note": "color: white or black",
+      "priority": "must",
+      "tags": [
+        "laptop bag"
+      ],
+      "repeat": "",
+      "imgs": [
+        "img/dc5b822e-e069-4ba2-9136-6ff264d6489e.jpg?v=9409eb6b"
+      ],
+      "got": false,
+      "example": false
+    },
+    {
+      "id": "77e13897-2626-4343-aaa4-90b69d1075bf",
+      "name": "Veria Savvy Sling",
+      "price": 4000,
+      "priceMax": null,
+      "approx": true,
+      "urls": [
+        "https://www.veriatravel.com/products/savvy-sling",
+        "https://www.veriatravel.com/products/savvy-sling-sleek"
+      ],
+      "note": "color: black",
+      "priority": "must",
+      "tags": [
+        "laptop bag",
+        "travel bag"
+      ],
+      "repeat": "",
+      "imgs": [
+        "img/77e13897-2626-4343-aaa4-90b69d1075bf.jpg?v=8ac7b28c",
+        "img/77e13897-2626-4343-aaa4-90b69d1075bf-1.jpg?v=23900b1d"
       ],
       "got": false,
       "example": false

@@ -125,6 +125,10 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 .dialog ul { margin: 0 0 14px; padding-left: 20px; color: var(--muted); }
 .tagline { background: var(--tag); color: #FFFFFF; padding: 0 6px; }
 .taglist { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.tmrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 3px 0; }
+.tmrow .grow { flex: 1 1 auto; }
+.tmrow input[type=checkbox] { width: auto; flex: none; }
+label.tmrow { flex-wrap: nowrap; }
 .tagnote { margin-top: 6px; padding: 4px 8px; border: 1px dashed var(--muted); color: var(--muted); font-size: 14px; }
 :root[data-style="app"] .tagnote { border-radius: 8px; }
 .pic { display: block; width: 220px; max-width: 100%; height: auto; margin: 8px 0 0; border: 1px solid var(--line); }
@@ -183,6 +187,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 .ro-handle { padding: 6px 16px; border: 0; background: none; color: inherit; font-size: 24px; line-height: 1; cursor: grab; touch-action: none; }
 #orderwrap { margin-top: 18px; }
 #orderDone { margin-top: 18px; }
+#orderbar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+#orderbar .status { margin: 0; }
 .savebar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--bg);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
@@ -259,6 +265,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   <div class="panel" id="panel" hidden>
     <button class="btn primary" id="addBtn" type="button">Add item</button>
     <button class="btn" id="orderBtn" type="button">Reorder</button>
+    <button class="btn" id="tagMgrBtn" type="button">Tags</button>
     <label class="sortlabel" for="currency">currency
       <select id="currency">
         <option value="THB">THB ฿</option>
@@ -272,6 +279,19 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     <button class="btn small danger" id="clearEx" type="button" hidden>Remove example items</button>
   </div>
 
+  <div class="form" id="tagmgr" hidden>
+    <h2>Tag manager</h2>
+    <p class="status">normal = friends get a warning when the tag is already picked. repeatable = never warns (like games).</p>
+    <div id="tm-list"></div>
+    <h2>Joint tags</h2>
+    <p class="status">pick 2 or more tags and name the group. An item that has ALL of them keeps its tags and also gets the hidden group tag. So two separate items (a travel bag and a laptop bag) do not count as one big bag.</p>
+    <div id="tm-joints"></div>
+    <div class="field"><label for="tm-name">new joint tag name</label><input id="tm-name" type="text" maxlength="30" placeholder="e.g. big bag" autocomplete="off"></div>
+    <div class="field"><label>tags inside it</label><div id="tm-pick"></div></div>
+    <p class="formerr" id="tm-err"></p>
+    <div class="actions"><button class="btn primary" id="tm-add" type="button">Add joint tag</button><button class="btn" id="tm-close" type="button">Close</button></div>
+  </div>
+
   <form class="form" id="form" hidden novalidate>
     <h2 id="formTitle">Add item</h2>
     <div class="fields">
@@ -281,7 +301,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         <select id="f-pri"><option value="must">must have</option><option value="should">need this</option><option value="want" selected>want</option><option value="someday">someday</option><option value="essential">essential (everyday stuff)</option></select>
       </div>
       <div class="field full"><label for="f-tag">tags (optional, separate with commas, up to 5)</label><input id="f-tag" type="text" maxlength="170" placeholder="e.g. wallet, black" autocomplete="off"></div>
-      <div class="field full"><label for="f-rep">can friends pick more than one of this kind?</label><select id="f-rep"><option value="">no, warn if the same tag is already picked</option><option value="item">yes, just this item</option><option value="tag">yes, the whole tag (the first tag you list, for every item that has it)</option></select></div>
+      <div class="field full"><label for="f-rep">can friends pick more than one of this kind?</label><select id="f-rep"><option value="">no, warn if the same tag is already picked</option><option value="item">yes, just this item</option></select></div>
       <div class="field full"><label for="f-img">pictures (optional, up to 4, shrunk automatically)</label><input id="f-img" type="file" accept="image/*" multiple>
         <div class="imgbox" id="f-imgs"></div>
         <p class="formerr" id="f-imgerr"></p></div>
@@ -297,7 +317,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
 
   <ul class="list" id="list"><li class="empty">Loading your list…</li></ul>
   <div id="orderwrap" hidden>
-    <p class="status">hold the ≡ on the right and drag to move. items only move inside their own priority.</p>
+    <div id="orderbar"><button class="btn primary" id="orderDoneTop" type="button">Done reordering</button><p class="status">hold the ≡ and drag. items only move inside their own priority.</p></div>
     <div id="orderlist"></div>
     <button class="btn primary" id="orderDone" type="button">Done reordering</button>
   </div>
@@ -331,7 +351,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   var CURRENCIES = ['THB', 'USD', 'EUR', 'GBP', 'JPY'];
   var PENDING_KEY = 'wishlist-pending';
   var $ = function (id) { return document.getElementById(id); };
-  var data = { title: 'My Wishlist', currency: 'THB', items: [] };
+  var data = { title: 'My Wishlist', currency: 'THB', repTags: [], joints: [], items: [] };
   var art = null, user = null;
   var editing = false, canWrite = true, dirty = false, saving = false;
   var FIREBASE_CONFIG = {
@@ -345,7 +365,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   var claimsOn = !!FIREBASE_CONFIG;
   var fb = null, claims = {}, authUser = null, pendingClaim = null;
   var formImgs = [], MAX_PICS = 4;
-  var ordering = false, drag = null;
+  var ordering = false, drag = null, tmOpen = false, tmPicked = {};
   var DEF_PREFS = { style: 'app', mode: 'device', font: 'type', scheme: 'pink' };
   var PREF_OPTS = { style: ['app', 'text'], mode: ['device', 'light', 'dark'], font: ['type', 'clean', 'cursive', 'hand', 'serif'], scheme: ['pink', 'green', 'yellow', 'purple', 'blue'] };
   var prefs = Object.assign({}, DEF_PREFS), prefsTimer = 0, prefsUid = null;
@@ -367,7 +387,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     return list.filter(function (u) { return typeof u === 'string' && u; }).slice(0, 10);
   }
   function normalize(d) {
-    var out = { title: 'My Wishlist', currency: 'THB', items: [] };
+    var out = { title: 'My Wishlist', currency: 'THB', repTags: [], joints: [], items: [] };
     if (!d || typeof d !== 'object') return out;
     if (typeof d.title === 'string' && d.title.trim()) out.title = d.title.slice(0, 60);
     if (CURRENCIES.indexOf(d.currency) >= 0) out.currency = d.currency;
@@ -390,6 +410,24 @@ select, input[type=text], input[type=number], input[type=password], textarea {
         got: !!x.got,
         example: !!x.example
       });
+    });
+    // repeatable tags (tagb): a list of tag keys. Old lists marked "the whole tag" on an item (its first tag); that moves here.
+    (Array.isArray(d.repTags) ? d.repTags : []).forEach(function (t) {
+      var k = typeof t === 'string' ? normTag(t) : '';
+      if (k && out.repTags.indexOf(k) < 0) out.repTags.push(k);
+    });
+    out.items.forEach(function (x) {
+      if (x.repeat === 'tag') {
+        var k = x.tags.length ? normTag(x.tags[0]) : '';
+        if (k && out.repTags.indexOf(k) < 0) out.repTags.push(k);
+        x.repeat = '';
+      }
+    });
+    // joint tags (tagc): a name plus 2 to 5 tags. An item with all of them is judged as one kind.
+    (Array.isArray(d.joints) ? d.joints : []).forEach(function (j) {
+      if (!j || typeof j.name !== 'string' || !j.name.trim() || !Array.isArray(j.tags) || out.joints.length >= 10) return;
+      var tags = normTags({ tags: j.tags });
+      if (tags.length >= 2) out.joints.push({ name: j.name.trim().slice(0, 30), tags: tags });
     });
     return out;
   }
@@ -507,8 +545,8 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     s.appendChild(document.createTextNode(' still to get. ' + left.length + ' left, ' + (n - left.length) + ' got.'));
   }
 
-  // The tag dropdown: every tag in the list with how many items use it.
-  function renderTagFilter() {
+  // Every tag used in the list, with how many items use it (used by the tag dropdown and the tag manager).
+  function allTags() {
     var seen = {}, list = [];
     data.items.forEach(function (x) {
       x.tags.forEach(function (t) {
@@ -519,6 +557,12 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       });
     });
     list.sort(function (a, b) { return a.label.localeCompare(b.label); });
+    return list;
+  }
+  // The tag dropdown: every tag in the list with how many items use it.
+  function renderTagFilter() {
+    var list = allTags(), seen = {};
+    list.forEach(function (t) { seen[t.key] = t; });
     if (tagSel && !seen[tagSel]) tagSel = '';
     var sel = $('tagfilter');
     sel.textContent = '';
@@ -614,7 +658,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
       buyBox.appendChild(cs);
       if (!cl) {       // a small note (not a pop-up) when someone is buying an item that shares a tag but is not the same kind
         tagHits(x, authUser && authUser.uid).filter(function (h) { return !h.big; }).slice(0, 3).forEach(function (h) {
-          buyBox.appendChild(el('div', 'tagnote', 'someone is buying a ' + h.name + ' item with the same ' + h.tags.join(', ') + (h.tags.length > 1 ? ' tags' : ' tag')));
+          buyBox.appendChild(el('div', 'tagnote', (h.mine ? 'you are buying a ' : 'someone is buying a ') + h.name + ' item with the same ' + h.tags.join(', ') + (h.tags.length > 1 ? ' tags' : ' tag')));
         });
       }
       detail('buying', buyBox);
@@ -748,10 +792,12 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     $('editToggle').textContent = editing ? 'Done' : 'Edit list';
     $('title').readOnly = !editing;
     $('panel').hidden = !editing;
-    if (!editing) { $('form').hidden = true; ordering = false; }
+    if (!editing) { $('form').hidden = true; ordering = false; tmOpen = false; }
     $('list').hidden = ordering;
     $('orderwrap').hidden = !ordering;
     if (ordering) renderOrder();
+    renderTagMgr();
+    $('orderBtn').textContent = ordering ? 'Done reordering' : 'Reorder';
     $('currency').value = data.currency;
     $('sort').value = sort;
     $('clearEx').hidden = !data.items.some(function (x) { return x.example; });
@@ -810,12 +856,80 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     touch();
   });
   $('formCancel').addEventListener('click', function () { $('form').hidden = true; editId = null; });
-  $('addBtn').addEventListener('click', function () { openForm(null); });
+  // Tag manager: each tag is normal or repeatable, and joint tags are made here.
+  function renderTagMgr() {
+    $('tagmgr').hidden = !tmOpen;
+    if (!tmOpen) return;
+    var tags = allTags(), rep = repSet(), box = $('tm-list');
+    box.textContent = '';
+    if (!tags.length) box.appendChild(el('p', 'status', 'No tags yet. Add tags to your items first.'));
+    tags.forEach(function (t) {
+      var row = el('div', 'tmrow'), s = el('select');
+      row.appendChild(el('span', 'grow', t.label + ' (' + t.n + ')'));
+      [['', 'normal'], ['rep', 'repeatable']].forEach(function (o) { var op = el('option', null, o[1]); op.value = o[0]; s.appendChild(op); });
+      s.value = rep[t.key] ? 'rep' : '';
+      s.addEventListener('change', function () {
+        data.repTags = data.repTags.filter(function (k) { return k !== t.key; });
+        if (s.value === 'rep') data.repTags.push(t.key);
+        touch();
+      });
+      row.appendChild(s);
+      box.appendChild(row);
+    });
+    var jb = $('tm-joints');
+    jb.textContent = '';
+    if (!data.joints.length) jb.appendChild(el('p', 'status', 'No joint tags yet.'));
+    data.joints.forEach(function (j, i) {
+      var row = el('div', 'tmrow'), del = el('button', 'btn small danger', 'remove');
+      row.appendChild(el('span', 'grow', j.name + ' = ' + j.tags.join(' + ')));
+      del.type = 'button';
+      del.addEventListener('click', function () { data.joints.splice(i, 1); touch(); });
+      row.appendChild(del);
+      jb.appendChild(row);
+    });
+    var pk = $('tm-pick');
+    pk.textContent = '';
+    tags.forEach(function (t) {
+      var lab = el('label', 'tmrow'), cb = el('input');
+      cb.type = 'checkbox';
+      cb.checked = !!tmPicked[t.key];
+      cb.addEventListener('change', function () { tmPicked[t.key] = cb.checked; });
+      lab.appendChild(el('span', 'grow', t.label));
+      lab.appendChild(cb);
+      pk.appendChild(lab);
+    });
+  }
+  $('tagMgrBtn').addEventListener('click', function () {
+    tmOpen = !tmOpen;
+    render();
+    if (tmOpen) $('tagmgr').scrollIntoView({ block: 'start' });
+  });
+  $('tm-close').addEventListener('click', function () { tmOpen = false; render(); });
+  $('tm-add').addEventListener('click', function () {
+    var name = $('tm-name').value.trim().slice(0, 30), err = $('tm-err'), labels = {}, picked = [];
+    allTags().forEach(function (t) { labels[t.key] = t.label; });
+    Object.keys(tmPicked).forEach(function (k) { if (tmPicked[k] && labels[k]) picked.push(k); });
+    var same = data.joints.some(function (j) { return j.tags.length === picked.length && j.tags.every(function (t) { return picked.indexOf(normTag(t)) >= 0; }); });
+    if (!name) { err.textContent = 'Give the joint tag a name.'; $('tm-name').focus(); return; }
+    if (picked.length < 2) { err.textContent = 'Pick at least 2 tags.'; return; }
+    if (picked.length > MAX_TAGS) { err.textContent = 'Up to ' + MAX_TAGS + ' tags in one joint tag.'; return; }
+    if (same) { err.textContent = 'You already have a joint tag with those tags.'; return; }
+    if (data.joints.length >= 10) { err.textContent = 'Up to 10 joint tags.'; return; }
+    data.joints.push({ name: name, tags: picked.map(function (k) { return labels[k]; }) });
+    tmPicked = {};
+    $('tm-name').value = '';
+    err.textContent = '';
+    touch();
+  });
+  $('addBtn').addEventListener('click', function () { if (ordering) { ordering = false; render(); } openForm(null); });
   $('orderBtn').addEventListener('click', function () {
+    if (ordering) { ordering = false; render(); return; }
     ordering = true; $('form').hidden = true; render();
     $('orderwrap').scrollIntoView({ block: 'start' });
   });
-  $('orderDone').addEventListener('click', function () { ordering = false; render(); });
+  function exitOrder() { ordering = false; render(); }
+  $('orderDone').addEventListener('click', exitOrder);
+  $('orderDoneTop').addEventListener('click', exitOrder);
   $('clearEx').addEventListener('click', function () {
     data.items = data.items.filter(function (x) { return !x.example; });
     touch();
@@ -982,30 +1096,54 @@ select, input[type=text], input[type=number], input[type=password], textarea {
   // Two tags are the same when they match ignoring capital letters and extra spaces.
   function normTag(t) { return String(t || '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' '); }
   function tagKeys(x) { return x.tags.map(normTag); }
-  // Tags that repeat: the first tag of every item whose "can friends pick more than one" is "the whole tag".
-  function repeatingTags() {
+  // Repeatable tags (tagb): marked in the tag manager. They never cause a warning.
+  function repSet() {
     var set = {};
-    data.items.forEach(function (y) { if (y.repeat === 'tag' && y.tags.length) set[normTag(y.tags[0])] = true; });
+    data.repTags.forEach(function (k) { set[k] = true; });
     return set;
   }
-  // Other people's picks that share a tag with this item.
-  //   big: true  = the tags are the same, or all of one item's tags are inside the other's (big warning when ticking)
-  //   big: false = they share some tags, but each also has a tag the other lacks (small note under the tick)
-  // A repeating item or tag never counts.
+  // The tags an item is judged by, as { key: label }.
+  //   normal tags (taga) stay as they are
+  //   repeatable tags (tagb) are dropped
+  //   joint tags (tagc): if the item has ALL tags of a joint tag, it keeps them and also gets one extra hidden tag
+  function logicTags(item) {
+    var have = {};
+    item.tags.forEach(function (t) { have[normTag(t)] = t; });
+    data.joints.forEach(function (j) {
+      var keys = j.tags.map(normTag);
+      if (!keys.every(function (k) { return have[k]; })) return;
+      have['\u0001' + normTag(j.name)] = j.tags.join(' + ');
+    });
+    var rep = repSet();
+    Object.keys(have).forEach(function (k) { if (rep[k]) delete have[k]; });
+    return have;
+  }
+  // Picks (yours too) that share a tag with this item.
+  //   big: true  = every tag of this item is already picked (big warning when ticking)
+  //   big: false = only some of its tags are picked (small note under the tick)
+  // A repeating item never counts. Repeatable tags are ignored, joint tags count as one tag (see logicTags).
   function tagHits(item, uid) {
-    var mine = tagKeys(item);
-    if (!mine.length || item.repeat === 'item') return [];
-    var rep = repeatingTags();
-    var out = [];
+    if (item.repeat === 'item') return [];
+    var mine = logicTags(item), keys = Object.keys(mine);
+    if (!keys.length) return [];
+    var picked = {}, ticked = {}, out = [];
     data.items.forEach(function (y) {
       var c = claims[y.id];
-      if (y.id === item.id || y.repeat === 'item' || !c || (uid && c.by === uid)) return;
-      var theirs = tagKeys(y);
-      var shared = mine.filter(function (k) { return theirs.indexOf(k) >= 0 && !rep[k]; });
+      if (y.id === item.id || y.repeat === 'item' || !c) return;
+      y.tags.forEach(function (t) { ticked[normTag(t)] = true; });   // every tag that is ticked anywhere
+      var theirs = logicTags(y);
+      var shared = keys.filter(function (k) { return theirs[k]; });
       if (!shared.length) return;
-      var big = mine.every(function (k) { return theirs.indexOf(k) >= 0; }) || theirs.every(function (k) { return mine.indexOf(k) >= 0; });
-      out.push({ name: y.name, status: c.status, big: big, tags: shared.map(function (k) { return y.tags[theirs.indexOf(k)]; }) });
+      shared.forEach(function (k) { picked[k] = true; });
+      out.push({ name: y.name, status: c.status, mine: !!uid && c.by === uid, tags: shared.map(function (k) { return mine[k]; }) });
     });
+    // a joint tag also counts as ticked when all of its tags are ticked, even on separate plain items
+    data.joints.forEach(function (j) {
+      var jk = '\u0001' + normTag(j.name);
+      if (mine[jk] && j.tags.every(function (t) { return ticked[normTag(t)]; })) picked[jk] = true;
+    });
+    var big = keys.every(function (k) { return picked[k]; });
+    out.forEach(function (h) { h.big = big; });
     return out;
   }
   function sameTagClaims(item, u) {      // only the big matches get the big warning
@@ -1016,7 +1154,7 @@ select, input[type=text], input[type=number], input[type=password], textarea {
     var anyBought = hits.some(function (h) { return h.status === 'bought'; });
     $('warn-msg').textContent = 'An item from the same category ' + (anyBought ? 'has already been bought' : 'has already been picked') + ' c:';
     var ul = $('warn-list'); ul.textContent = '';
-    hits.forEach(function (h) { ul.appendChild(el('li', null, h.name + ' (' + (h.status === 'bought' ? 'already bought' : 'picked') + ')')); });
+    hits.forEach(function (h) { ul.appendChild(el('li', null, h.name + ' (' + (h.mine ? 'you ' : '') + (h.status === 'bought' ? 'already bought' : 'picked') + ')')); });
     $('warn-go').onclick = function () { closeWarn(); claimAct(item, 'claim', true); };
     $('warn-back').onclick = closeWarn;
     $('warn').hidden = false;
