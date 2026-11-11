@@ -157,37 +157,31 @@ export function mapOldItem(old, baseUrl) {
 }
 
 // ---- appearance (device-only preferences) ------------------------------------
-export const DEFAULT_PREFS = { theme: 'device', accent: '#D6336C', font: 'clean', layout: 'app', effect: false, shown: '' };
-export const SWATCHES = [['Pink', '#D6336C'], ['Red', '#D93025'], ['Orange', '#E8710A'], ['Yellow', '#E0B000'],
-  ['Green', '#1F9D6B'], ['Teal', '#0E8A9A'], ['Blue', '#2F7DE1'], ['Purple', '#7C4DFF']];
+// 8 curated color themes: main color + small touch + extra. Contrast checked (text 4.5:1, marks 3:1) in light and dark.
+export const THEMES = {
+  Rose: {light: {accent: '#D6336C', accentInk: '#BF2958', onAccent: '#FFFFFF', soft: '#F7E0E5', touch: '#AF7D2B', touchSoft: '#F2E9DE', extra: '#8C49A2', extraSoft: '#EFDCF0'}, dark: {accent: '#EE6A96', accentInk: '#EE6A96', onAccent: '#1A1416', soft: '#3E222C', touch: '#E0B060', touchSoft: '#3B3021', extra: '#B969D3', extraSoft: '#301736'}},
+  Clay: {light: {accent: '#BF5630', accentInk: '#AB4C2A', onAccent: '#FFFFFF', soft: '#F4E5DE', touch: '#2E8C86', touchSoft: '#E2EBE9', extra: '#7B6737', extraSoft: '#F4EBDB'}, dark: {accent: '#E58A66', accentInk: '#E58A66', onAccent: '#1A1416', soft: '#3C2822', touch: '#63BDB4', touchSoft: '#223332', extra: '#C69C39', extraSoft: '#372C18'}},
+  Honey: {light: {accent: '#A8650F', accentInk: '#945B0F', onAccent: '#FFFFFF', soft: '#F1E6DA', touch: '#6F8234', touchSoft: '#EAEADF', extra: '#3F6C8D', extraSoft: '#DFE9F0'}, dark: {accent: '#E0A44C', accentInk: '#E0A44C', onAccent: '#1A1416', soft: '#3B2E1D', touch: '#A9BB6A', touchSoft: '#303223', extra: '#4994CA', extraSoft: '#192936'}},
+  Moss: {light: {accent: '#4C7A3C', accentInk: '#487238', onAccent: '#FFFFFF', soft: '#E6E9E0', touch: '#BF6540', touchSoft: '#F4E6E0', extra: '#7B6A37', extraSoft: '#F4EDDB'}, dark: {accent: '#8DBB78', accentInk: '#8DBB78', onAccent: '#1A1416', soft: '#2B3226', touch: '#E39A78', touchSoft: '#3C2C26', extra: '#C6A339', extraSoft: '#372E18'}},
+  Teal: {light: {accent: '#0E7C78', accentInk: '#0E7470', onAccent: '#FFFFFF', soft: '#DFE9E7', touch: '#D9614B', touchSoft: '#F7E6E1', extra: '#824CA9', extraSoft: '#EBDCF0'}, dark: {accent: '#4FBDB6', accentInk: '#4FBDB6', onAccent: '#1A1416', soft: '#1E3332', touch: '#F09482', touchSoft: '#3E2A28', extra: '#A96DD5', extraSoft: '#2A1736'}},
+  Ocean: {light: {accent: '#2F66C2', accentInk: '#2E64BE', onAccent: '#FFFFFF', soft: '#E3E6F0', touch: '#C7702F', touchSoft: '#F5E8DE', extra: '#34745F', extraSoft: '#DFF2E9'}, dark: {accent: '#7CA6F0', accentInk: '#7CA6F0', onAccent: '#1A1416', soft: '#272E3E', touch: '#EBA468', touchSoft: '#3D2E22', extra: '#39C697', extraSoft: '#19362C'}},
+  Plum: {light: {accent: '#8246B3', accentInk: '#8246B3', onAccent: '#FFFFFF', soft: '#ECE3EE', touch: '#AB801C', touchSoft: '#F1EADC', extra: '#9E4773', extraSoft: '#F4DCE5'}, dark: {accent: '#B98BE3', accentInk: '#B98BE3', onAccent: '#1A1416', soft: '#33293B', touch: '#DDB85A', touchSoft: '#3B3220', extra: '#D2659C', extraSoft: '#371727'}},
+  Ink: {light: {accent: '#3B3437', accentInk: '#3B3437', onAccent: '#FFFFFF', soft: '#E4E0DF', touch: '#D6336C', touchSoft: '#F7E0E5', extra: '#446797', extraSoft: '#DFE5F0'}, dark: {accent: '#E8E1DF', accentInk: '#E8E1DF', onAccent: '#1A1416', soft: '#3D3A3A', touch: '#EE6A96', touchSoft: '#3E222C', extra: '#5D8DD0', extraSoft: '#192436'}}
+};
+export const THEME_NAMES = Object.keys(THEMES);
+export const themeVars = (name, dark) => (THEMES[name] || THEMES.Rose)[dark ? 'dark' : 'light'];
+export const DEFAULT_PREFS = { theme: 'device', scheme: 'Rose', font: 'clean', layout: 'app', effect: false, shown: '' };
 export const FONTS = {
   clean: "-apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif",
   type: "'Courier Prime', 'Courier New', monospace",
   cursive: "'Dancing Script', 'Snell Roundhand', cursive",
   serif: "'Lora', Georgia, serif"
 };
-const hex3 = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-const toHex = (a) => '#' + a.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
-const mix = (h, t, k) => { const a = hex3(h), b = hex3(t); return toHex(a.map((v, i) => v * (1 - k) + b[i] * k)); };
-const lum = (h) => {
-  const [r, g, b] = hex3(h).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-export const isHex = (s) => /^#[0-9a-fA-F]{6}$/.test(String(s || ''));
-// Colors for one accent. Text on the accent is white or near-black, whichever reads better.
-export function accentVars(accent, dark) {
-  const L = lum(accent);
-  return {
-    accent,
-    accentInk: dark ? mix(accent, '#FFFFFF', 0.3) : mix(accent, '#000000', 0.22),
-    onAccent: 1.05 / (L + 0.05) >= (L + 0.05) / 0.056 ? '#FFFFFF' : '#121011'
-  };
-}
 // Clean up whatever was saved on the device.
 export function sanitizePrefs(x) {
   const o = { ...DEFAULT_PREFS };
   if (x && ['device', 'light', 'dark'].includes(x.theme)) o.theme = x.theme;
-  if (x && isHex(x.accent)) o.accent = x.accent;
+  if (x && THEMES[x.scheme]) o.scheme = x.scheme;
   if (x && FONTS[x.font]) o.font = x.font;
   if (x && ['app', 'text'].includes(x.layout)) o.layout = x.layout;
   if (x && x.effect === true) o.effect = true;

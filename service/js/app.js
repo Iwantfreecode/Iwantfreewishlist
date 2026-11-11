@@ -10,7 +10,7 @@ import { firebaseConfig } from './config.js';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps,
-  DEFAULT_PREFS, SWATCHES, FONTS, accentVars, sanitizePrefs, isHex
+  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, sanitizePrefs
 } from './logic.js';
 import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js';
 import { makeData } from './data.js';
@@ -42,9 +42,15 @@ function applyPrefs() {
   const root = document.documentElement, dark = prefs.theme === 'dark' || (prefs.theme === 'device' && darkMq.matches);
   if (prefs.theme === 'device') root.removeAttribute('data-theme'); else root.dataset.theme = prefs.theme;
   root.dataset.layout = prefs.layout;
-  const v = accentVars(prefs.accent, dark);
-  root.style.setProperty('--accent', v.accent); root.style.setProperty('--accent-ink', v.accentInk); root.style.setProperty('--on-accent', v.onAccent);
-  root.style.setProperty('--font', FONTS[prefs.font]);
+  const v = themeVars(prefs.scheme, dark);
+  const set = (k, val) => root.style.setProperty(k, val);
+  set('--accent', v.accent); set('--accent-ink', v.accentInk); set('--on-accent', v.onAccent); set('--soft', v.soft);
+  set('--touch', v.touch); set('--touch-soft', v.touchSoft); set('--extra', v.extra); set('--extra-soft', v.extraSoft);
+  set('--font', FONTS[prefs.font]);
+  set('--display', prefs.font === 'clean' ? "'Instrument Serif', Georgia, serif" : FONTS[prefs.font]);
+  if (prefs.font === 'clean' && !document.getElementById('sv-display')) {          // title font loads late; Georgia shows until then
+    document.head.append(h('link', { id: 'sv-display', rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap' }));
+  }
   if (prefs.font !== 'clean' && !document.getElementById('sv-fonts')) {        // web fonts load only when someone picks one
     document.head.append(h('link', { id: 'sv-fonts', rel: 'stylesheet',
       href: 'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Dancing+Script:wght@500;700&family=Lora:wght@500;600&display=swap' }));
@@ -63,9 +69,6 @@ const isOwner = () => !!(S.user && S.list && S.list.ownerUid === S.user.uid);
 const isGoogle = () => !!(S.user && S.user.providerData.some((p) => p.providerId === 'google.com'));
 const shownName = () => (prefs.shown || (S.profile && S.profile.name) || '');
 // Items I chose to sign with my name before ticking them (kept on this device, per list).
-const pickKey = () => 'sv_namepick_' + S.listId;
-const picks = () => { try { return new Set(JSON.parse(localStorage.getItem(pickKey()) || '[]')); } catch (e) { return new Set(); } };
-const savePicks = (set) => { try { localStorage.setItem(pickKey(), JSON.stringify([...set])); } catch (e) { /* ignore */ } };
 
 // ---- tiny DOM helper: text only, never innerHTML (names come from other people) ----
 function h(tag, attrs, ...kids) {
@@ -266,7 +269,7 @@ async function doTick(item, tick) {
     }
     S.warn = null;
     const change = (open, sur) => {                           // open = anonymous, sur = named
-      if (tick) (picks().has(item.id) ? sur : open).push(item.id);
+      if (tick) open.push(item.id);                          // a new tick is always "someone"; the switch on the item changes it
       else { open = open.filter((x) => x !== item.id); sur = sur.filter((x) => x !== item.id); }
       return [[...new Set(open)], [...new Set(sur)]];
     };
@@ -283,11 +286,14 @@ async function doTick(item, tick) {
     say(friendlyError(e), true);
   }
 }
-// The "Show my name" box on one item. If I already ticked it, move it between my two docs. If not, remember the choice for the tick.
-async function setNamed(item, on) {
-  const p = picks(); if (on) p.add(item.id); else p.delete(item.id); savePicks(p);
+// The "Owner sees" switch on one ticked item: move it between my two docs (someone / my name).
+const setNamed = (item, on) => { tickQueue = tickQueue.then(() => setNamedRun(item, on)); return tickQueue; };
+async function setNamedRun(item, on) {
   const mineOpen = myTicks(false).includes(item.id), mineNamed = myTicks(true).includes(item.id);
-  if (!mineOpen && !mineNamed) return render();
+  if (!mineOpen && !mineNamed || mineNamed === on) return;
+  S.ticks = withMine(S.ticks, on ? myTicks(false).filter((x) => x !== item.id) : [...myTicks(false), item.id],
+    on ? [...myTicks(true), item.id] : myTicks(true).filter((x) => x !== item.id));
+  render();                                                   // switch moves at once
   try {
     S.ticks = await D.loadTicks(S.listId, false);
     const open = myTicks(false).filter((x) => x !== item.id), named = myTicks(true).filter((x) => x !== item.id);
@@ -373,7 +379,7 @@ function homeNoList() {
   return out;
 }
 
-// One list row. Owner: edit/move buttons. Visitor: round tick.
+// One list row: picture on the left, text in the middle. Friends tick on the right, the owner sees a plain circle on the left.
 function rowFor(it, c, ctxNow, owner) {
   const claim = c[it.id], mine = !!(S.user && claim && claim.all.includes(S.user.uid));
   const taken = !!claim && !mine && it.repeat !== 'item';
@@ -389,28 +395,31 @@ function rowFor(it, c, ctxNow, owner) {
       h('span', { class: mine ? 'on-mine' : '' }));
   }
   const meta = [];
-  if (mine) meta.push("you're buying this");
-  else if (claim && !owner && it.repeat !== 'item') meta.push('someone is buying this');
-  else if (owner && claim) meta.push(claim.named && claim.name ? claim.name + ' is buying this' : 'someone is buying this');
   if (it.tags.length) meta.push(it.tags.join(' · '));
   if (it.repeat === 'item') meta.push('can be bought many times');
+  let status = '';
+  if (mine) status = h('div', { class: 'status mine' }, 'You are buying this');
+  else if (claim && !owner && it.repeat !== 'item') status = h('div', { class: 'status' }, 'Someone is buying this');
+  else if (owner && claim) status = h('div', { class: 'status mine' }, claim.named && claim.name ? claim.name + ' is buying this' : 'Someone is buying this');
+  const named = mine && myTicks(true).includes(it.id);
+  const sw = mine ? h('div', { class: 'ownersees' }, h('span', {}, 'Owner sees'),
+    h('span', { class: 'seg2', role: 'group', 'aria-label': 'What the owner sees' },
+      h('button', { type: 'button', 'aria-pressed': String(!named), on: { click: () => setNamed(it, false) } }, 'someone'),
+      h('button', { type: 'button', 'aria-pressed': String(named), on: { click: () => setNamed(it, true) } }, shownName()))) : '';
   const note = !owner && S.user && S.profile && !taken && !mine ? smallNote(it, ctxNow, c) : null;
   const body = h('div', { class: 'body' },
-    h('div', { class: 'top2' }, h('span', { class: 'name' + (it.got || taken ? ' dim' : '') }, it.name),
-      h('span', { class: 'price' }, priceText(it))),
-    !owner && S.user && S.profile && !taken
-      ? h('label', { class: 'check showname' }, h('input', { type: 'checkbox', checked: myTicks(true).includes(it.id) || (!mine && picks().has(it.id)),
-        on: { change: (e) => setNamed(it, e.target.checked) } }), ' Show my name to the owner') : '',
-    meta.length ? h('div', { class: 'meta' }, meta.join(' · ')) : '',
-    isHttps(it.picUrl) || it.picV ? picEl(it) : '',
+    h('div', { class: 'name' + (it.got || taken ? ' dim' : '') }, it.name),
+    h('div', { class: 'price' }, priceText(it), meta.length ? h('span', { class: 'meta' }, ' · ' + meta.join(' · ')) : ''),
     it.note ? h('div', { class: 'note' }, it.note) : '',
-    it.urls.filter(isHttps).length ? h('div', { class: 'meta' }, it.urls.filter(isHttps).map((u) => h('a', { href: u, target: '_blank', rel: 'noopener noreferrer' }, linkLabel(u) + ' '))) : '',
-    note ? h('div', { class: 'note' }, note) : '',
+    status, sw,
+    it.urls.filter(isHttps).length ? h('div', { class: 'meta links' }, it.urls.filter(isHttps).map((u) => h('a', { href: u, target: '_blank', rel: 'noopener noreferrer' }, '↗ ' + linkLabel(u) + ' '))) : '',
+    note ? h('div', { class: 'note soft' }, note) : '',
     owner ? h('div', { class: 'acts' },
       S.reorder ? [h('button', { class: 'link', 'aria-label': 'Move up', on: { click: () => move(it.id, -1) } }, '▲'),
         h('button', { class: 'link', 'aria-label': 'Move down', on: { click: () => move(it.id, 1) } }, '▼')] : '',
       h('button', { class: 'link', on: { click: () => { S.editId = it.id; go('edit'); } } }, 'Edit')) : '');
-  return h('div', { class: 'row' }, lead, body);
+  const thumb = isHttps(it.picUrl) || it.picV ? picEl(it) : h('span', { class: 'pic ph', 'aria-hidden': 'true' }, (it.name || '?').slice(0, 1).toUpperCase());
+  return h('div', { class: 'row' + (owner ? ' owner' : '') }, lead, thumb, body);
 }
 const linkLabel = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return 'link'; } };
 const priceText = (it) => !it.price ? '' : (it.approx ? '~' : '') + baht(it.price) + (it.priceMax > it.price ? '–' + baht(it.priceMax) : '');
@@ -446,7 +455,11 @@ function listScreen() {
     ? h('span', {}, h('button', { class: 'link', on: { click: () => go('account') } }, 'Account'), signOutBtn())
     : signInBtn();
   const t = totalToGet(S.list), cNow = claims(), cx = ctx();
-  side.push(h('h1', {}, S.list.title), owner ? h('button', { class: 'link', on: { click: () => { S.showRename = true; render(); } } }, 'Rename list') : '', h('p', { class: 'muted' }, `${t.count} items · ${t.got} got · ${baht(t.sum)} to go`));
+  const pct = t.count ? Math.round(100 * t.got / t.count) : 0;
+  side.push(h('h1', {}, S.list.title), owner ? h('button', { class: 'link', on: { click: () => { S.showRename = true; render(); } } }, 'Rename list') : '',
+    h('div', { class: 'stat' }, h('span', { class: 'big' }, `${t.got} of ${t.count}`), h('span', { class: 'muted small' }, ' items got')),
+    h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': t.count, 'aria-valuenow': t.got },
+      h('div', { style: 'width:' + Math.max(pct, 3) + '%' }), h('i', { style: 'left:calc(' + Math.max(pct, 3) + '% - 3px)' })));
   if (owner) {                                            // owner tools at the top
     side.push(h('button', { class: 'primary', on: { click: () => { S.editId = null; go('edit'); } } }, 'Add an item'),
       h('div', { class: 'seg' },
@@ -457,7 +470,7 @@ function listScreen() {
   }
   side.push(S.showAuth && !S.user ? '' : msgBox());
   if (!owner && S.user && S.profile) {
-    side.push(h('p', { class: 'muted small' }, 'The owner sees "someone" on items you tick. On any item you can turn on "Show my name" and the owner sees: ' + shownName() + '. Change that name in Account.'));
+    side.push(h('p', { class: 'muted small' }, 'The owner sees "someone" on items you tick. After you tick an item you can switch it to your name (' + shownName() + '), item by item. Change that name in Account.'));
   }
   const tabs = [['all', 'All'], ...PRIORITIES, ['got', 'Got']];
   out.push(h('nav', { class: 'tabs', 'aria-label': 'Priority' }, tabs.map(([k, label]) =>
@@ -465,7 +478,7 @@ function listScreen() {
   const arr = itemsArr();
   const shown = S.tab === 'got' ? arr.filter((i) => i.got) : arr.filter((i) => !i.got && (S.tab === 'all' || i.priority === S.tab));
   for (const g of groupItems({ order: shown.map((i) => i.id), items: Object.fromEntries(shown.map((i) => [i.id, i])) })) {
-    out.push(h('h2', {}, h('span', {}, g.title), h('span', {}, String(g.items.length))));
+    out.push(h('div', { class: 'sec' }, h('span', { class: 'badge b-' + g.key }, g.title), h('span', { class: 'muted small' }, g.items.length + (g.items.length === 1 ? ' item' : ' items')), h('span', { class: 'rule' })));
     g.items.forEach((it) => out.push(rowFor(it, cNow, cx, owner)));
   }
   if (!shown.length) out.push(h('p', { class: 'muted' }, owner ? 'Nothing here. Add an item above.' : 'Nothing here.'));
@@ -481,12 +494,13 @@ function lookDialog() {
       h('button', { class: 'link close', on: { click: () => { S.showLook = false; render(); } } }, 'Done'),
       h('h1', {}, 'Appearance'),
       h('p', { class: 'warn' }, 'Only changes how you see the site. Saved to your account when you are signed in, and on this device.'),
-      h('h2', {}, h('span', {}, 'Theme')), seg('theme', [['light', 'Light'], ['dark', 'Dark'], ['device', 'Follow device']]),
-      h('h2', {}, h('span', {}, 'Main color')),
-      h('div', { class: 'swatches' }, SWATCHES.map(([name, col]) =>
-        h('button', { type: 'button', class: 'swatch', 'aria-label': name, 'aria-pressed': String(prefs.accent.toLowerCase() === col.toLowerCase()),
-          style: 'background:' + col, on: { click: () => setPrefs({ accent: col }) } }))),
-      h('label', { class: 'check' }, h('input', { type: 'color', value: prefs.accent, on: { change: (e) => setPrefs({ accent: e.target.value }) } }), ' Pick any color'),
+      h('h2', {}, h('span', {}, 'Mode')), seg('theme', [['light', 'Light'], ['dark', 'Dark'], ['device', 'Follow device']]),
+      h('h2', {}, h('span', {}, 'Color theme')),
+      h('div', { class: 'themes' }, THEME_NAMES.map((name) => {
+        const v = themeVars(name, false);
+        return h('button', { type: 'button', class: 'themetile', 'aria-label': name, 'aria-pressed': String(prefs.scheme === name), on: { click: () => setPrefs({ scheme: name }) } },
+          h('span', { class: 'dots' }, h('i', { style: 'background:' + v.accent }), h('i', { style: 'background:' + v.touch }), h('i', { style: 'background:' + v.extra })), name);
+      })),
       h('h2', {}, h('span', {}, 'Font')),
       seg('font', [['clean', 'Clean'], ['type', 'Typewriter'], ['cursive', 'Cursive'], ['serif', 'Serif']]),
       h('h2', {}, h('span', {}, 'Layout')), seg('layout', [['app', 'App'], ['text', 'Plain text']]),
@@ -495,7 +509,7 @@ function lookDialog() {
         h('button', { type: 'button', 'aria-pressed': String(prefs.effect === v),
           on: { click: () => { if (v && !prefs.effect) { S.confirmFx = true; render(); } else if (!v) setPrefs({ effect: false }); } } }, label))),
       h('p', { class: 'muted small' }, 'Cursors build the page when it opens. It uses more data and battery, can feel confusing or slow, and may cause other display problems. Takes effect the next time you open the page.'),
-      h('button', { class: 'secondary', on: { click: () => setPrefs({ ...DEFAULT_PREFS, shown: prefs.shown }) } }, 'Reset to pink')));
+      h('button', { class: 'secondary', on: { click: () => setPrefs({ ...DEFAULT_PREFS, shown: prefs.shown }) } }, 'Reset to Rose')));
 }
 
 function renameDialog() {
@@ -566,15 +580,16 @@ function tagsScreen() {
   const arr = itemsArr(), tags = allTags(arr);
   const rep = new Set(S.list.repTags || []);
   const joints = (S.list.joints || []).map((j) => ({ name: j.name, tags: j.tags.slice() }));
-  const repBoxes = tags.map((t) => check(t.label, 'rep', rep.has(t.key)));
+  const chip = (label, name, on) => { const l = check(label, name, on); l.className = 'chip'; return l; };
+  const repBoxes = tags.map((t) => chip(t.label, 'rep', rep.has(t.key)));
   repBoxes.forEach((lab, i) => { lab.firstChild.value = tags[i].key; });
   const repForm = h('form', { on: { submit: (e) => { e.preventDefault();
     const keys = [...e.target.querySelectorAll('input[name=rep]:checked')].map((x) => x.value);
     saveTags(keys, S.list.joints || []); } } },
-    h('h2', {}, h('span', {}, 'Repeatable tags (never warn)')),
-    tags.length ? repBoxes : h('p', { class: 'muted' }, 'No tags yet.'),
+    h('h3', {}, 'Repeatable tags'), h('p', { class: 'muted' }, 'Items with these tags can be bought many times. They never warn.'),
+    tags.length ? h('div', { class: 'chips' }, repBoxes) : h('p', { class: 'muted' }, 'No tags yet.'),
     h('button', { class: 'primary', type: 'submit' }, 'Save repeatable tags'));
-  const jointRows = joints.map((j, n) => h('div', { class: 'row-sm' }, h('span', {}, j.name + ' = ' + j.tags.join(' + ')),
+  const jointRows = joints.map((j, n) => h('div', { class: 'row-sm' }, h('span', {}, h('b', {}, j.name), h('span', { class: 'muted' }, ' = ' + j.tags.join(' + '))),
     h('button', { class: 'link', on: { click: () => saveTags([...rep], joints.filter((_, i) => i !== n)) } }, 'Remove')));
   const jointForm = h('form', { on: { submit: (e) => { e.preventDefault();
     const name = e.target.jname.value.trim().slice(0, 30);
@@ -582,13 +597,16 @@ function tagsScreen() {
     if (!name || picked.length < 2) return say('Give it a name and pick at least 2 tags.', true);
     if (joints.length >= 20) return say('Max 20 joint tags.', true);
     saveTags([...rep], [...joints, { name, tags: picked }]); } } },
-    h('h2', {}, h('span', {}, 'Joint tags (hidden, for the logic only)')),
-    ...jointRows,
-    field('New joint tag name', 'jname', { maxlength: 30 }),
-    tags.map((t) => { const lab = check(t.label, 'jt', false); lab.firstChild.value = t.label; return lab; }),
+    h('h3', {}, 'Joint tags'),
+    h('p', { class: 'muted' }, 'A joint tag is a hidden tag for items that have all of its tags. Friends never see it. It only decides which items count as the same kind.'),
+    jointRows.length ? h('div', { class: 'jointlist' }, jointRows) : '',
+    h('h4', {}, 'New joint tag'),
+    field('Name', 'jname', { maxlength: 30, placeholder: 'e.g. big bag' }),
+    h('p', { class: 'warn' }, 'Pick 2 or more tags'),
+    h('div', { class: 'chips' }, tags.map((t) => { const lab = chip(t.label, 'jt', false); lab.firstChild.value = t.label; return lab; })),
     h('button', { class: 'primary', type: 'submit' }, 'Add joint tag'));
   return [topBar(backBtn()), h('h1', {}, 'Tags'),
-    h('p', { class: 'muted' }, 'Normal tags warn when two items share one. Repeatable tags never warn. A joint tag is a hidden extra tag for items that have all its tags.'),
+    h('p', { class: 'muted' }, 'Tags warn your friends when two items are the same kind, so nobody buys both.'),
     repForm, h('hr'), jointForm, msgBox()];
 }
 
