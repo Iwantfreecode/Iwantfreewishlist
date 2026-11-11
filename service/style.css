@@ -137,3 +137,6 @@ textarea { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; bor
 @media (min-width: 640px) { #app[data-view="other"] { max-width: none; padding: 0 32px 64px; } }
 
 .dialog { max-height: calc(100dvh - 40px); }
+
+/* iPhone: no tap delay, no grey flash */
+button, label, input, select { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }

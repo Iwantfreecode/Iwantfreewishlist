@@ -246,23 +246,42 @@ async function copyLink() {
 }
 
 // ---- ticking --------------------------------------------------------------------
-async function tickAction(item, tick) {
+// My two tick docs, rebuilt from lists of item ids. Used to show a tick at once, before the network answers.
+const withMine = (ticks, open, named) => {
+  const mk = (items, flag) => items.length ? [{ uid: S.user.uid, name: flag ? shownName() : '', named: flag, v: 2, items }] : [];
+  return [...ticks.filter((t) => t.uid !== S.user.uid), ...mk(open, false), ...mk(named, true)];
+};
+let tickQueue = Promise.resolve();
+// Taps are handled one after another, so a fast second tap cannot undo or race the first.
+const tickAction = (item, tick) => { tickQueue = tickQueue.then(() => doTick(item, tick)); return tickQueue; };
+async function doTick(item, tick) {
   if (!S.user || !S.profile) return say('Sign in to tick items.', true);
-  const confirmed = S.warnOk; S.warnOk = false;            // "Tick anyway" counts for this one tick only
+  const confirmed = S.warnOk; S.warnOk = false;              // "Tick anyway" counts for this one tick only
   try {
-    S.ticks = await D.loadTicks(S.listId, false);            // fresh read: two people may tick together
-    const c = claims();
-    let open = myTicks(false), sur = myTicks(true);       // open = anonymous, sur = named
+    const c0 = claims();
     if (tick) {
-      if (c[item.id] && item.repeat !== 'item' && c[item.id].by !== S.user.uid) return say('Someone just ticked that one.', true);
-      const hits = bigHits(item, ctx(), c, S.user.uid);
+      if (c0[item.id] && item.repeat !== 'item' && c0[item.id].by !== S.user.uid) return say('Someone just ticked that one.', true);
+      const hits = bigHits(item, ctx(), c0, S.user.uid);
       if (hits.length && !confirmed) { S.warn = { item, hits }; return render(); }
-      (picks().has(item.id) ? sur : open).push(item.id);
-    } else { open = open.filter((x) => x !== item.id); sur = sur.filter((x) => x !== item.id); }
+    }
     S.warn = null;
-    await D.writeMyTicks(S.listId, S.user, shownName(), [...new Set(open)], [...new Set(sur)]);
-    S.ticks = await D.loadTicks(S.listId, false); render();
-  } catch (e) { say(friendlyError(e), true); }
+    const change = (open, sur) => {                           // open = anonymous, sur = named
+      if (tick) (picks().has(item.id) ? sur : open).push(item.id);
+      else { open = open.filter((x) => x !== item.id); sur = sur.filter((x) => x !== item.id); }
+      return [[...new Set(open)], [...new Set(sur)]];
+    };
+    S.ticks = withMine(S.ticks, ...change(myTicks(false), myTicks(true)));
+    render();                                                 // the tick shows at once
+    const fresh = await D.loadTicks(S.listId, false);         // then check against the real data: two people may tick together
+    S.ticks = fresh;
+    if (tick && claims()[item.id] && item.repeat !== 'item' && claims()[item.id].by !== S.user.uid) { render(); return say('Someone just ticked that one.', true); }
+    const [open, sur] = change(myTicks(false), myTicks(true));
+    await D.writeMyTicks(S.listId, S.user, shownName(), open, sur);
+    S.ticks = withMine(fresh, open, sur); render();
+  } catch (e) {
+    try { S.ticks = await D.loadTicks(S.listId, false); } catch (e2) { /* keep what we have */ }
+    say(friendlyError(e), true);
+  }
 }
 // The "Show my name" box on one item. If I already ticked it, move it between my two docs. If not, remember the choice for the tick.
 async function setNamed(item, on) {
