@@ -9,7 +9,8 @@ import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/
 import { firebaseConfig } from './config.js';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
-  groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps
+  groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps,
+  DEFAULT_PREFS, SWATCHES, FONTS, accentVars, sanitizePrefs, isHex
 } from './logic.js';
 import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js';
 import { makeData } from './data.js';
@@ -29,8 +30,30 @@ const D = makeData(db);
 const S = {
   screen: 'loading', panel: 'list', user: null, profile: null,
   list: null, listId: null, ticks: [], msg: '', error: false, busy: false,
-  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, showAuth: false, copied: false
+  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, showAuth: false, copied: false, showLook: false
 };
+// ---- appearance: saved on this device only, applied by setting CSS variables ----
+let prefs = DEFAULT_PREFS;
+try { prefs = sanitizePrefs(JSON.parse(localStorage.getItem('sv_prefs'))); } catch (e) { /* defaults */ }
+const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+function applyPrefs() {
+  const root = document.documentElement, dark = prefs.theme === 'dark' || (prefs.theme === 'device' && darkMq.matches);
+  if (prefs.theme === 'device') root.removeAttribute('data-theme'); else root.dataset.theme = prefs.theme;
+  root.dataset.layout = prefs.layout;
+  const v = accentVars(prefs.accent, dark);
+  root.style.setProperty('--accent', v.accent); root.style.setProperty('--accent-ink', v.accentInk); root.style.setProperty('--on-accent', v.onAccent);
+  root.style.setProperty('--font', FONTS[prefs.font]);
+  if (prefs.font !== 'clean' && !document.getElementById('sv-fonts')) {        // web fonts load only when someone picks one
+    document.head.append(h('link', { id: 'sv-fonts', rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Dancing+Script:wght@500;700&family=Lora:wght@500;600&display=swap' }));
+  }
+}
+function setPrefs(change) {
+  prefs = sanitizePrefs({ ...prefs, ...change });
+  try { localStorage.setItem('sv_prefs', JSON.stringify(prefs)); } catch (e) { /* ignore */ }
+  applyPrefs(); render();
+}
+darkMq.addEventListener('change', () => { applyPrefs(); });
 const params = new URLSearchParams(location.search);
 const sharedId = params.get('l');
 const isOwner = () => !!(S.user && S.list && S.list.ownerUid === S.user.uid);
@@ -258,7 +281,8 @@ async function deleteAccount(form) {
 }
 
 // ---- pieces -----------------------------------------------------------------------
-const topBar = (right) => h('header', { class: 'top' }, h('span', { class: 'wordmark' }, 'wishlist'), right || '');
+const lookBtn = () => h('button', { class: 'link', on: { click: () => { S.showLook = true; render(); } } }, 'Appearance');
+const topBar = (right) => h('header', { class: 'top' }, h('span', { class: 'wordmark' }, 'wishlist'), h('span', { class: 'topr' }, lookBtn(), right || ''));
 const msgBox = () => S.msg ? h('div', { class: 'msg' + (S.error ? ' error' : ''), role: 'status' }, S.msg) : '';
 const field = (label, name, attrs) => h('label', { class: 'field' }, label, h('input', { name, ...attrs }));
 const textarea = (label, name, value, rows) => h('label', { class: 'field' }, label, h('textarea', { name, rows: rows || 3 }, value || ''));
@@ -365,25 +389,24 @@ function picEl(it) {
 
 function listScreen() {
   const owner = isOwner();
-  const out = [];
+  const out = [], side = [];
   if (!S.list) return [topBar(S.user ? signOutBtn() : signInBtn()), h('h1', {}, 'List not found'), h('p', { class: 'muted' }, 'Check the link.'), msgBox()];
   const right = S.user
     ? h('span', {}, h('button', { class: 'link', on: { click: () => go('account') } }, 'Account'), signOutBtn())
     : signInBtn();
-  out.push(topBar(right));
   const t = totalToGet(S.list), cNow = claims(), cx = ctx();
-  out.push(h('h1', {}, S.list.title), h('p', { class: 'muted' }, `${t.count} items · ${t.got} got · ${baht(t.sum)} to go`));
+  side.push(h('h1', {}, S.list.title), h('p', { class: 'muted' }, `${t.count} items · ${t.got} got · ${baht(t.sum)} to go`));
   if (owner) {                                            // owner tools at the top
-    out.push(h('button', { class: 'primary', on: { click: () => { S.editId = null; go('edit'); } } }, 'Add an item'),
+    side.push(h('button', { class: 'primary', on: { click: () => { S.editId = null; go('edit'); } } }, 'Add an item'),
       h('div', { class: 'seg' },
         h('button', { 'aria-pressed': String(S.reorder), on: { click: () => { S.reorder = !S.reorder; render(); } } }, 'Reorder'),
         h('button', { on: { click: () => go('tags') } }, 'Tags')),
       h('button', { class: 'secondary', on: { click: copyLink } }, S.copied ? 'Link copied ✓' : 'Copy share link'));
-    if (!t.count) out.push(h('button', { class: 'secondary', on: { click: importOld } }, 'Import my old wishlist'));
+    if (!t.count) side.push(h('button', { class: 'secondary', on: { click: importOld } }, 'Import my old wishlist'));
   }
-  out.push(S.showAuth && !S.user ? '' : msgBox());
+  side.push(S.showAuth && !S.user ? '' : msgBox());
   if (!owner && S.user && S.profile) {
-    out.push(h('label', { class: 'check surprise' }, h('input', { type: 'checkbox', checked: surpriseOn(), on: { change: (e) => setSurprise(e.target.checked) } }),
+    side.push(h('label', { class: 'check surprise' }, h('input', { type: 'checkbox', checked: surpriseOn(), on: { change: (e) => setSurprise(e.target.checked) } }),
       ' Surprise mode: the owner cannot see my ticks'));
   }
   const tabs = [['all', 'All'], ...PRIORITIES, ['got', 'Got']];
@@ -396,7 +419,28 @@ function listScreen() {
     g.items.forEach((it) => out.push(rowFor(it, cNow, cx, owner)));
   }
   if (!shown.length) out.push(h('p', { class: 'muted' }, owner ? 'Nothing here. Add an item above.' : 'Nothing here.'));
-  return out;
+  return [topBar(right), h('div', { class: 'cols' }, h('aside', {}, side), h('div', { class: 'main' }, out))];
+}
+
+function lookDialog() {
+  if (!S.showLook) return '';
+  const seg = (key, options) => h('div', { class: 'seg' }, options.map(([v, label]) =>
+    h('button', { type: 'button', 'aria-pressed': String(prefs[key] === v), on: { click: () => setPrefs({ [key]: v }) } }, label)));
+  return h('div', { class: 'overlay', role: 'dialog', 'aria-label': 'Appearance' },
+    h('div', { class: 'dialog' },
+      h('button', { class: 'link close', on: { click: () => { S.showLook = false; render(); } } }, 'Done'),
+      h('h1', {}, 'Appearance'),
+      h('p', { class: 'warn' }, 'Only changes how you see the site. Saved on this device.'),
+      h('h2', {}, h('span', {}, 'Theme')), seg('theme', [['light', 'Light'], ['dark', 'Dark'], ['device', 'Follow device']]),
+      h('h2', {}, h('span', {}, 'Main color')),
+      h('div', { class: 'swatches' }, SWATCHES.map(([name, col]) =>
+        h('button', { type: 'button', class: 'swatch', 'aria-label': name, 'aria-pressed': String(prefs.accent.toLowerCase() === col.toLowerCase()),
+          style: 'background:' + col, on: { click: () => setPrefs({ accent: col }) } }))),
+      h('label', { class: 'check' }, h('input', { type: 'color', value: prefs.accent, on: { change: (e) => setPrefs({ accent: e.target.value }) } }), ' Pick any color'),
+      h('h2', {}, h('span', {}, 'Font')),
+      seg('font', [['clean', 'Clean'], ['type', 'Typewriter'], ['cursive', 'Cursive'], ['serif', 'Serif']]),
+      h('h2', {}, h('span', {}, 'Layout')), seg('layout', [['app', 'App'], ['text', 'Plain text']]),
+      h('button', { class: 'secondary', on: { click: () => setPrefs(DEFAULT_PREFS) } }, 'Reset to pink')));
 }
 
 // Sign-in popup for people who are not signed in (opened by the "Sign in" button or by tapping a tick).
@@ -493,7 +537,9 @@ function render() {
     content = S.panel === 'edit' && isOwner() ? editScreen() : S.panel === 'tags' && isOwner() ? tagsScreen()
       : S.panel === 'account' && S.profile ? accountScreen() : listScreen();
   } else content = [h('p', { class: 'loading' }, 'Loading…')];
-  content.push(warnBox(), authDialog());
+  if (!(S.screen === 'list' && S.panel === 'list')) content = [h('div', { class: 'narrow' }, content)];   // forms stay narrow on wide screens
+  content.push(warnBox(), authDialog(), lookDialog());
   root.replaceChildren(...content);
 }
+applyPrefs();
 render();

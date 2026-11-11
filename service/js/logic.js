@@ -155,3 +155,40 @@ export function mapOldItem(old, baseUrl) {
     repTagsAdd: old.repeat === 'tag' ? tags.map(normTagKey) : []
   };
 }
+
+// ---- appearance (device-only preferences) ------------------------------------
+export const DEFAULT_PREFS = { theme: 'device', accent: '#D6336C', font: 'clean', layout: 'app' };
+export const SWATCHES = [['Pink', '#D6336C'], ['Red', '#D93025'], ['Orange', '#E8710A'], ['Yellow', '#E0B000'],
+  ['Green', '#1F9D6B'], ['Teal', '#0E8A9A'], ['Blue', '#2F7DE1'], ['Purple', '#7C4DFF']];
+export const FONTS = {
+  clean: "-apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif",
+  type: "'Courier Prime', 'Courier New', monospace",
+  cursive: "'Dancing Script', 'Snell Roundhand', cursive",
+  serif: "'Lora', Georgia, serif"
+};
+const hex3 = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const toHex = (a) => '#' + a.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+const mix = (h, t, k) => { const a = hex3(h), b = hex3(t); return toHex(a.map((v, i) => v * (1 - k) + b[i] * k)); };
+const lum = (h) => {
+  const [r, g, b] = hex3(h).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+export const isHex = (s) => /^#[0-9a-fA-F]{6}$/.test(String(s || ''));
+// Colors for one accent. Text on the accent is white or near-black, whichever reads better.
+export function accentVars(accent, dark) {
+  const L = lum(accent);
+  return {
+    accent,
+    accentInk: dark ? mix(accent, '#FFFFFF', 0.3) : mix(accent, '#000000', 0.22),
+    onAccent: 1.05 / (L + 0.05) >= (L + 0.05) / 0.056 ? '#FFFFFF' : '#121011'
+  };
+}
+// Clean up whatever was saved on the device.
+export function sanitizePrefs(x) {
+  const o = { ...DEFAULT_PREFS };
+  if (x && ['device', 'light', 'dark'].includes(x.theme)) o.theme = x.theme;
+  if (x && isHex(x.accent)) o.accent = x.accent;
+  if (x && FONTS[x.font]) o.font = x.font;
+  if (x && ['app', 'text'].includes(x.layout)) o.layout = x.layout;
+  return o;
+}

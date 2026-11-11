@@ -4,9 +4,10 @@
   --accent: #D6336C; --accent-ink: #B02A59; --on-accent: #FFFFFF; --danger: #B3261E;
   --font: -apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
+:root[data-theme="dark"] { --bg: #121011; --ink: #F2EDEE; --muted: #A0969A; --line: #2A2527; --ring: #6E6468; --surface: #1C1819; --danger: #F2B8B5; color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #121011; --ink: #F2EDEE; --muted: #A0969A; --line: #2A2527; --ring: #6E6468; --surface: #1C1819;
-    --accent-ink: #E27098; --danger: #F2B8B5; }
+  :root:not([data-theme]) { --bg: #121011; --ink: #F2EDEE; --muted: #A0969A; --line: #2A2527; --ring: #6E6468; --surface: #1C1819; --danger: #F2B8B5; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.35 var(--font); -webkit-text-size-adjust: 100%; }
@@ -64,3 +65,51 @@ textarea { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; bor
 .close { float: right; }
 .tabs { overflow-x: auto; scrollbar-width: none; }
 .tabs button { flex: none; white-space: nowrap; }
+
+/* ---- appearance dialog ---- */
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.swatch { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line); }
+.swatch[aria-pressed="true"] { border: 3px solid var(--ink); }
+.topr { display: flex; align-items: center; gap: 2px; }
+.seg { flex-wrap: wrap; }
+.seg button { min-width: 30%; }
+
+/* ---- bigger screens ---- */
+.cols { display: block; }
+.narrow { max-width: 480px; margin: 0 auto; }
+@media (min-width: 640px) {            /* iPad, upright */
+  body { font-size: 18px; }
+  #app { max-width: 720px; padding: 0 36px 64px; }
+  h1 { font-size: 38px; }
+  .row .price { font-size: 16px; }
+  .pic { width: 96px; height: 96px; }
+}
+@media (min-width: 1000px) {           /* iPad sideways and desktop: tools on the left, list on the right */
+  #app { max-width: 1120px; padding: 0 48px 80px; }
+  .cols { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 56px; align-items: start; }
+  .cols > aside { position: sticky; top: 12px; }
+  .cols > .main .tabs { margin-top: 18px; }
+  h1 { font-size: 44px; }
+}
+
+/* ---- plain text layout (typed look) ---- */
+:root[data-layout="text"] { --font: 'Courier Prime', 'Courier New', monospace; }
+:root[data-layout="text"] body { font-family: var(--font); }
+:root[data-layout="text"] h2 { text-transform: uppercase; color: var(--muted); }
+:root[data-layout="text"] h2 span:first-child::before { content: '== '; }
+:root[data-layout="text"] h2 span:first-child::after { content: ' =='; }
+:root[data-layout="text"] .row .body { border-bottom: 1px dotted var(--ring); }
+:root[data-layout="text"] .tick span { width: auto; height: auto; border: 0; border-radius: 0; background: none; font-weight: 700; }
+:root[data-layout="text"] .tick span::before { content: '[ ]'; }
+:root[data-layout="text"] .tick span.on-mine::before { content: '[x]'; color: var(--accent-ink); }
+:root[data-layout="text"] .tick span.on-other::before { content: '[x]'; color: var(--muted); }
+:root[data-layout="text"] .tick span.on-mine, :root[data-layout="text"] .tick span.on-other { background-image: none; background: none; }
+:root[data-layout="text"] .primary, :root[data-layout="text"] .secondary, :root[data-layout="text"] .field input,
+:root[data-layout="text"] .field select, :root[data-layout="text"] textarea, :root[data-layout="text"] .seg button,
+:root[data-layout="text"] .pill, :root[data-layout="text"] .note, :root[data-layout="text"] .msg, :root[data-layout="text"] .dialog { border-radius: 2px; }
+:root[data-layout="text"] .secondary, :root[data-layout="text"] .field input, :root[data-layout="text"] .field select,
+:root[data-layout="text"] textarea, :root[data-layout="text"] .seg button { border: 1px dotted var(--ring); }
+:root[data-layout="text"] .tabs button { text-transform: lowercase; }
+:root[data-layout="text"] .tabs button[aria-pressed="true"] { border-bottom: 0; }
+:root[data-layout="text"] .tabs button[aria-pressed="true"]::before { content: '['; }
+:root[data-layout="text"] .tabs button[aria-pressed="true"]::after { content: ']'; }
