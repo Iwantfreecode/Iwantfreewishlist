@@ -15,6 +15,7 @@ export function makeData(db) {
     const s = await getDoc(doc(db, 'users', uid));
     return s.exists() ? s.data() : null;
   }
+  async function savePrefs(uid, prefs) { await updateDoc(doc(db, 'users', uid), { prefs }); }
   async function getList(id) {
     const s = await getDoc(listRef(id));
     return s.exists() ? s.data() : null;
@@ -130,6 +131,6 @@ export function makeData(db) {
     await b.commit();
   }
 
-  return { getProfile, getList, reserveName, createList, saveItem, removeItem, saveOrder, saveTagSettings,
+  return { getProfile, savePrefs, getList, reserveName, createList, saveItem, removeItem, saveOrder, saveTagSettings,
     loadTicks, writeMyTicks, savePic, loadPic, deletePic, importOld, deleteMyData };
 }

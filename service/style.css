@@ -113,3 +113,13 @@ textarea { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; bor
 :root[data-layout="text"] .tabs button[aria-pressed="true"] { border-bottom: 0; }
 :root[data-layout="text"] .tabs button[aria-pressed="true"]::before { content: '['; }
 :root[data-layout="text"] .tabs button[aria-pressed="true"]::after { content: ']'; }
+
+/* page-build effect */
+#swlayer{position:absolute;left:0;top:0;width:100%;height:0;overflow:hidden;z-index:5;pointer-events:none}
+.swcover{position:absolute;z-index:1;background:var(--bg);transition:opacity .4s}
+.swbox{position:absolute;z-index:2;transition:opacity .5s;border:1.5px dashed var(--ink);box-sizing:border-box}
+.swc{position:absolute;left:0;top:0;z-index:3;will-change:transform;transition:opacity .4s}
+.swc svg{display:block;width:18px;height:18px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.swemoji{display:block;font-style:normal;font-size:20px;line-height:1}
+.swc span{position:absolute;left:14px;top:14px;padding:0 6px;font:400 13px/1.4 var(--font);color:#1A1A1A;white-space:nowrap}
+.small { font-size: 14px; }

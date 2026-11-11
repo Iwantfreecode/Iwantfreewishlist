@@ -157,7 +157,7 @@ export function mapOldItem(old, baseUrl) {
 }
 
 // ---- appearance (device-only preferences) ------------------------------------
-export const DEFAULT_PREFS = { theme: 'device', accent: '#D6336C', font: 'clean', layout: 'app' };
+export const DEFAULT_PREFS = { theme: 'device', accent: '#D6336C', font: 'clean', layout: 'app', effect: false };
 export const SWATCHES = [['Pink', '#D6336C'], ['Red', '#D93025'], ['Orange', '#E8710A'], ['Yellow', '#E0B000'],
   ['Green', '#1F9D6B'], ['Teal', '#0E8A9A'], ['Blue', '#2F7DE1'], ['Purple', '#7C4DFF']];
 export const FONTS = {
@@ -190,5 +190,6 @@ export function sanitizePrefs(x) {
   if (x && isHex(x.accent)) o.accent = x.accent;
   if (x && FONTS[x.font]) o.font = x.font;
   if (x && ['app', 'text'].includes(x.layout)) o.layout = x.layout;
+  if (x && x.effect === true) o.effect = true;
   return o;
 }

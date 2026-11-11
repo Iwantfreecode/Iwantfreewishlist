@@ -14,6 +14,7 @@ import {
 } from './logic.js';
 import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js';
 import { makeData } from './data.js';
+import { runEffect } from './effect.js';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -30,9 +31,10 @@ const D = makeData(db);
 const S = {
   screen: 'loading', panel: 'list', user: null, profile: null,
   list: null, listId: null, ticks: [], msg: '', error: false, busy: false,
-  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, showAuth: false, copied: false, showLook: false
+  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, showAuth: false, copied: false, showLook: false, confirmFx: false
 };
 // ---- appearance: saved on this device only, applied by setting CSS variables ----
+let fxStarted = false;
 let prefs = DEFAULT_PREFS;
 try { prefs = sanitizePrefs(JSON.parse(localStorage.getItem('sv_prefs'))); } catch (e) { /* defaults */ }
 const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -52,6 +54,7 @@ function setPrefs(change) {
   prefs = sanitizePrefs({ ...prefs, ...change });
   try { localStorage.setItem('sv_prefs', JSON.stringify(prefs)); } catch (e) { /* ignore */ }
   applyPrefs(); render();
+  if (S.user && S.profile) D.savePrefs(S.user.uid, prefs).catch(() => {});      // saved to the account too (quietly; the device copy still works)
 }
 darkMq.addEventListener('change', () => { applyPrefs(); });
 const params = new URLSearchParams(location.search);
@@ -110,6 +113,12 @@ async function route(user) {
   try {
     if (user) next.profile = await D.getProfile(user.uid);
     if (mine !== routeSeq) return;
+    if (next.profile) {      // the account's look wins; a new account starts with the defaults
+      const p = next.profile.prefs;
+      prefs = sanitizePrefs(p && Object.keys(p).length ? p : null);
+      try { localStorage.setItem('sv_prefs', JSON.stringify(prefs)); } catch (e) { /* ignore */ }
+      applyPrefs();
+    }
     S.user = user; S.profile = next.profile; S.panel = 'list'; S.reorder = false; S.warn = null; S.showAuth = false;
     if (!user && !sharedId) { S.list = null; S.listId = null; S.ticks = []; }
     if (!user) S.mode = 'signin';
@@ -430,7 +439,7 @@ function lookDialog() {
     h('div', { class: 'dialog' },
       h('button', { class: 'link close', on: { click: () => { S.showLook = false; render(); } } }, 'Done'),
       h('h1', {}, 'Appearance'),
-      h('p', { class: 'warn' }, 'Only changes how you see the site. Saved on this device.'),
+      h('p', { class: 'warn' }, 'Only changes how you see the site. Saved to your account when you are signed in, and on this device.'),
       h('h2', {}, h('span', {}, 'Theme')), seg('theme', [['light', 'Light'], ['dark', 'Dark'], ['device', 'Follow device']]),
       h('h2', {}, h('span', {}, 'Main color')),
       h('div', { class: 'swatches' }, SWATCHES.map(([name, col]) =>
@@ -440,7 +449,24 @@ function lookDialog() {
       h('h2', {}, h('span', {}, 'Font')),
       seg('font', [['clean', 'Clean'], ['type', 'Typewriter'], ['cursive', 'Cursive'], ['serif', 'Serif']]),
       h('h2', {}, h('span', {}, 'Layout')), seg('layout', [['app', 'App'], ['text', 'Plain text']]),
+      h('h2', {}, h('span', {}, 'Page build effect')),
+      h('div', { class: 'seg' }, [[false, 'Off'], [true, 'On']].map(([v, label]) =>
+        h('button', { type: 'button', 'aria-pressed': String(prefs.effect === v),
+          on: { click: () => { if (v && !prefs.effect) { S.confirmFx = true; render(); } else if (!v) setPrefs({ effect: false }); } } }, label))),
+      h('p', { class: 'muted small' }, 'Cursors build the page when it opens. It uses more data and battery, can feel confusing or slow, and may cause other display problems. Takes effect the next time you open the page.'),
       h('button', { class: 'secondary', on: { click: () => setPrefs(DEFAULT_PREFS) } }, 'Reset to pink')));
+}
+
+function fxConfirm() {
+  if (!S.confirmFx) return '';
+  const close = () => { S.confirmFx = false; render(); };
+  return h('div', { class: 'overlay', role: 'alertdialog', 'aria-label': 'Turn on page build effect' },
+    h('div', { class: 'dialog' },
+      h('h1', {}, 'Are you sure?'),
+      h('ul', {}, h('li', {}, 'It uses more data and battery.'), h('li', {}, 'Parts of the page stay covered until a cursor builds them, which can feel confusing or slow.'),
+        h('li', {}, 'It may cause other display problems. Turn it off if the page acts strange.')),
+      h('button', { class: 'primary', on: { click: () => { S.confirmFx = false; setPrefs({ effect: true }); } } }, 'Yes, turn it on'),
+      h('button', { class: 'secondary', on: { click: close } }, 'No, keep it off')));
 }
 
 // Sign-in popup for people who are not signed in (opened by the "Sign in" button or by tapping a tick).
@@ -538,7 +564,8 @@ function render() {
       : S.panel === 'account' && S.profile ? accountScreen() : listScreen();
   } else content = [h('p', { class: 'loading' }, 'Loading…')];
   if (!(S.screen === 'list' && S.panel === 'list')) content = [h('div', { class: 'narrow' }, content)];   // forms stay narrow on wide screens
-  content.push(warnBox(), authDialog(), lookDialog());
+  content.push(warnBox(), authDialog(), lookDialog(), fxConfirm());
+  if (prefs.effect && S.screen === 'list' && !fxStarted) { fxStarted = true; requestAnimationFrame(() => runEffect()); }
   root.replaceChildren(...content);
 }
 applyPrefs();
