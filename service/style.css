@@ -94,10 +94,9 @@ textarea { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; bor
   .pic { width: 96px; height: 96px; }
 }
 @media (min-width: 1000px) {           /* iPad sideways and desktop: tools on the left, list on the right */
-  #app[data-view="other"] { max-width: 760px; }          /* friends and family: one column, like the phone */
   #app[data-view="owner"] { max-width: 1500px; padding: 0 24px 80px; }          /* owner: thin tools on the left edge, wide list */
   #app[data-view="owner"] .cols { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 32px; align-items: start; }
-  .cols > aside { position: sticky; top: 74px; }
+  #app[data-view="owner"] .cols > aside { position: sticky; top: 74px; }          /* only the owner tools stick; friends page scrolls as one */
   .cols > .main .tabs { margin-top: 18px; }
   h1 { font-size: 44px; }
 }
@@ -133,3 +132,6 @@ textarea { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; bor
 .swemoji{display:block;font-style:normal;font-size:20px;line-height:1}
 .swc span{position:absolute;left:14px;top:14px;padding:0 6px;font:400 13px/1.4 var(--font);color:#1A1A1A;white-space:nowrap}
 .small { font-size: 14px; }
+
+/* friends and family: one column that fills the screen; only the top bar stays while scrolling */
+@media (min-width: 640px) { #app[data-view="other"] { max-width: none; padding: 0 32px 64px; } }
