@@ -29,7 +29,7 @@ const D = makeData(db);
 const S = {
   screen: 'loading', panel: 'list', user: null, profile: null,
   list: null, listId: null, ticks: [], msg: '', error: false, busy: false,
-  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}
+  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, showAuth: false, copied: false
 };
 const params = new URLSearchParams(location.search);
 const sharedId = params.get('l');
@@ -87,7 +87,7 @@ async function route(user) {
   try {
     if (user) next.profile = await D.getProfile(user.uid);
     if (mine !== routeSeq) return;
-    S.user = user; S.profile = next.profile; S.panel = 'list'; S.reorder = false; S.warn = null;
+    S.user = user; S.profile = next.profile; S.panel = 'list'; S.reorder = false; S.warn = null; S.showAuth = false;
     if (!user && !sharedId) { S.list = null; S.listId = null; S.ticks = []; }
     if (!user) S.mode = 'signin';
     if (sharedId) { await openList(sharedId); S.screen = user && !S.profile ? 'pickname' : 'list'; }
@@ -197,6 +197,22 @@ async function shrinkImage(file) {
   throw new Error('This picture will not get small enough. Try another.');
 }
 
+// ---- copy the share link ----
+async function copyLink() {
+  const url = location.origin + location.pathname + '?l=' + S.listId;
+  let done = false;
+  try { await navigator.clipboard.writeText(url); done = true; }
+  catch (e) {                                             // older browsers: select a hidden box and copy
+    const t = h('textarea', { style: 'position:fixed;opacity:0' }, url);
+    document.body.append(t); t.select();
+    try { done = document.execCommand('copy'); } catch (e2) { /* ignore */ }
+    t.remove();
+  }
+  if (!done) return say('Could not copy. Long-press the link to copy it.', true);
+  S.copied = true; render();
+  setTimeout(() => { S.copied = false; render(); }, 2000);
+}
+
 // ---- ticking --------------------------------------------------------------------
 async function tickAction(item, tick) {
   if (!S.user || !S.profile) return say('Sign in to tick items.', true);
@@ -262,7 +278,7 @@ function authBlock() {
       signup ? h('p', { class: 'warn' }, 'No password reset. If you forget it, the account is lost.') : '',
       h('button', { class: 'primary', type: 'submit', disabled: S.busy }, signup ? 'Create account' : 'Sign in'),
       h('button', { class: 'link', type: 'button', on: { click: () => { S.mode = signup ? 'signin' : 'signup'; S.msg = ''; render(); } } },
-        signup ? 'I already have an account' : 'New here? Make a name + password'))
+        signup ? 'I already have an account' : 'Press here to create new account'))
   ];
 }
 
@@ -293,7 +309,7 @@ function rowFor(it, c, ctxNow, owner) {
   if (owner) {
     lead = h('span', { class: 'tick', 'aria-hidden': 'true' }, h('span', { class: claim ? 'on-other' : '' }));
   } else if (!S.user || !S.profile) {
-    lead = h('button', { class: 'tick', 'aria-label': 'Sign in to tick ' + it.name, on: { click: () => say('Sign in below to tick items.', false) } }, h('span'));
+    lead = h('button', { class: 'tick', 'aria-label': 'Sign in to tick ' + it.name, on: { click: () => { S.msg = ''; S.showAuth = true; render(); } } }, h('span'));
   } else if (taken) {
     lead = h('span', { class: 'tick', role: 'img', 'aria-label': 'Taken by someone' }, h('span', { class: 'on-other' }));
   } else {
@@ -350,13 +366,22 @@ function picEl(it) {
 function listScreen() {
   const owner = isOwner();
   const out = [];
-  if (!S.list) return [topBar(S.user ? signOutBtn() : ''), h('h1', {}, 'List not found'), h('p', { class: 'muted' }, 'Check the link.'), ...(S.user ? [] : authBlock()), msgBox()];
+  if (!S.list) return [topBar(S.user ? signOutBtn() : signInBtn()), h('h1', {}, 'List not found'), h('p', { class: 'muted' }, 'Check the link.'), msgBox()];
   const right = S.user
     ? h('span', {}, h('button', { class: 'link', on: { click: () => go('account') } }, 'Account'), signOutBtn())
-    : '';
+    : signInBtn();
   out.push(topBar(right));
   const t = totalToGet(S.list), cNow = claims(), cx = ctx();
   out.push(h('h1', {}, S.list.title), h('p', { class: 'muted' }, `${t.count} items · ${t.got} got · ${baht(t.sum)} to go`));
+  if (owner) {                                            // owner tools at the top
+    out.push(h('button', { class: 'primary', on: { click: () => { S.editId = null; go('edit'); } } }, 'Add an item'),
+      h('div', { class: 'seg' },
+        h('button', { 'aria-pressed': String(S.reorder), on: { click: () => { S.reorder = !S.reorder; render(); } } }, 'Reorder'),
+        h('button', { on: { click: () => go('tags') } }, 'Tags')),
+      h('button', { class: 'secondary', on: { click: copyLink } }, S.copied ? 'Link copied ✓' : 'Copy share link'));
+    if (!t.count) out.push(h('button', { class: 'secondary', on: { click: importOld } }, 'Import my old wishlist'));
+  }
+  out.push(S.showAuth && !S.user ? '' : msgBox());
   if (!owner && S.user && S.profile) {
     out.push(h('label', { class: 'check surprise' }, h('input', { type: 'checkbox', checked: surpriseOn(), on: { change: (e) => setSurprise(e.target.checked) } }),
       ' Surprise mode: the owner cannot see my ticks'));
@@ -370,19 +395,18 @@ function listScreen() {
     out.push(h('h2', {}, h('span', {}, g.title), h('span', {}, String(g.items.length))));
     g.items.forEach((it) => out.push(rowFor(it, cNow, cx, owner)));
   }
-  if (!shown.length) out.push(h('p', { class: 'muted' }, owner ? 'Nothing here. Add an item below.' : 'Nothing here.'));
-  if (owner) {
-    out.push(h('hr'), h('button', { class: 'primary', on: { click: () => { S.editId = null; go('edit'); } } }, 'Add an item'),
-      h('div', { class: 'seg' },
-        h('button', { 'aria-pressed': String(S.reorder), on: { click: () => { S.reorder = !S.reorder; render(); } } }, 'Reorder'),
-        h('button', { on: { click: () => go('tags') } }, 'Tags')));
-    if (!t.count) out.push(h('button', { class: 'secondary', on: { click: importOld } }, 'Import my old wishlist'));
-    out.push(h('p', { class: 'warn' }, 'Share this link: ' + location.origin + location.pathname + '?l=' + S.listId));
-  } else if (!S.user) {
-    out.push(h('hr'), h('h2', {}, h('span', {}, 'Sign in to tick items')), ...authBlock());
-  }
-  out.push(msgBox());
+  if (!shown.length) out.push(h('p', { class: 'muted' }, owner ? 'Nothing here. Add an item above.' : 'Nothing here.'));
   return out;
+}
+
+// Sign-in popup for people who are not signed in (opened by the "Sign in" button or by tapping a tick).
+const signInBtn = () => h('button', { class: 'pill', on: { click: () => { S.msg = ''; S.showAuth = true; render(); } } }, 'Sign in');
+function authDialog() {
+  if (!S.showAuth || S.user) return '';
+  return h('div', { class: 'overlay', role: 'dialog', 'aria-label': 'Sign in' },
+    h('div', { class: 'dialog' },
+      h('button', { class: 'link close', 'aria-label': 'Close', on: { click: () => { S.showAuth = false; S.msg = ''; render(); } } }, 'Close'),
+      h('h1', {}, 'Sign in'), ...authBlock(), msgBox()));
 }
 
 function warnBox() {
@@ -469,7 +493,7 @@ function render() {
     content = S.panel === 'edit' && isOwner() ? editScreen() : S.panel === 'tags' && isOwner() ? tagsScreen()
       : S.panel === 'account' && S.profile ? accountScreen() : listScreen();
   } else content = [h('p', { class: 'loading' }, 'Loading…')];
-  content.push(warnBox());
+  content.push(warnBox(), authDialog());
   root.replaceChildren(...content);
 }
 render();
