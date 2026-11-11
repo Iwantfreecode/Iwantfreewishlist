@@ -13,7 +13,16 @@
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.35 var(--font); -webkit-text-size-adjust: 100%; }
 #app { max-width: 480px; margin: 0 auto; padding: 0 20px 48px; }
 .loading, .muted { color: var(--muted); }
-header.top { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 0; min-height: 58px; }
+header.top { position: sticky; top: 0; z-index: 4; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; min-height: 58px; border-bottom: 1px solid var(--line); }
+.topr { display: flex; gap: 6px; align-items: center; }
+.topr .link, .topr .pill { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font-size: 15px; font-weight: 400; }
+.topr > span { display: flex; gap: 6px; }
+.wordmark { display: flex; align-items: center; gap: 8px; color: var(--accent); }
+.wordmark span:last-child { color: var(--ink); }
+.logo { display: inline-flex; color: var(--accent); }
+.showname { font-size: 14px; color: var(--muted); margin: 4px 0 0; min-height: 0; }
+.showname input { width: 18px; height: 18px; }
+@media (max-width: 480px) { .wordmark span:last-child { display: none; } .topr .link, .topr .pill { padding: 0 9px; font-size: 14px; } }
 .wordmark { font-weight: 600; letter-spacing: -0.01em; }
 h1 { margin: 14px 0 0; font-size: 32px; line-height: 1.1; letter-spacing: -0.03em; font-weight: 700; }
 h2 { margin: 22px 0 2px; font-size: 13px; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; }
@@ -85,9 +94,10 @@ textarea { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; bor
   .pic { width: 96px; height: 96px; }
 }
 @media (min-width: 1000px) {           /* iPad sideways and desktop: tools on the left, list on the right */
-  #app { max-width: 1120px; padding: 0 48px 80px; }
-  .cols { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 56px; align-items: start; }
-  .cols > aside { position: sticky; top: 12px; }
+  #app[data-view="other"] { max-width: 760px; }          /* friends and family: one column, like the phone */
+  #app[data-view="owner"] { max-width: 1500px; padding: 0 24px 80px; }          /* owner: thin tools on the left edge, wide list */
+  #app[data-view="owner"] .cols { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 32px; align-items: start; }
+  .cols > aside { position: sticky; top: 74px; }
   .cols > .main .tabs { margin-top: 18px; }
   h1 { font-size: 44px; }
 }

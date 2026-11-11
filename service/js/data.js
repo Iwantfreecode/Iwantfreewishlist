@@ -65,21 +65,25 @@ export function makeData(db) {
   }
 
   // ---- ticks ----
-  // A ticker has 2 docs per list: uid_o (open) and uid_s (surprise).
-  // The owner may only query the open ones.
+  // A ticker has 2 docs per list: uid_a (anonymous: the owner sees "someone") and uid_n (named: the owner sees the shown name).
+  // Version 2 docs only (v: 2). Older doc types are ignored.
   async function loadTicks(listId, isOwner) {
-    const q = isOwner ? query(ticksCol(listId), where('surprise', '==', false)) : ticksCol(listId);
+    const q = isOwner ? query(ticksCol(listId), where('v', '==', 2)) : ticksCol(listId);
     const snap = await getDocs(q);
-    return snap.docs.map((d) => d.data());
+    return snap.docs.map((d) => d.data()).filter((t) => t.v === 2);
   }
-  async function writeMyTicks(listId, user, name, open, surprise) {
+  async function writeMyTicks(listId, user, shown, anon, named) {
     const b = writeBatch(db);
-    [['_o', open, false], ['_s', surprise, true]].forEach(([suffix, items, flag]) => {
+    [['_a', anon, false, ''], ['_n', named, true, shown]].forEach(([suffix, items, flag, name]) => {
       const ref = doc(db, 'lists', listId, 'ticks', user.uid + suffix);
-      if (items.length) b.set(ref, { uid: user.uid, name, surprise: flag, items, updatedAt: serverTimestamp() });
+      if (items.length) b.set(ref, { uid: user.uid, name, named: flag, v: 2, items, updatedAt: serverTimestamp() });
       else b.delete(ref);
     });
     await b.commit();
+  }
+  async function saveTitle(listId, list, title) {
+    await updateDoc(listRef(listId), { title, lastId: list.lastId, updatedAt: serverTimestamp() });
+    list.title = title;
   }
 
   // ---- pictures (one small data URL per item, inside Firestore) ----
@@ -131,6 +135,6 @@ export function makeData(db) {
     await b.commit();
   }
 
-  return { getProfile, savePrefs, getList, reserveName, createList, saveItem, removeItem, saveOrder, saveTagSettings,
+  return { getProfile, savePrefs, saveTitle, getList, reserveName, createList, saveItem, removeItem, saveOrder, saveTagSettings,
     loadTicks, writeMyTicks, savePic, loadPic, deletePic, importOld, deleteMyData };
 }

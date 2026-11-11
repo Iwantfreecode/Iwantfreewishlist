@@ -31,7 +31,7 @@ const D = makeData(db);
 const S = {
   screen: 'loading', panel: 'list', user: null, profile: null,
   list: null, listId: null, ticks: [], msg: '', error: false, busy: false,
-  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, showAuth: false, copied: false, showLook: false, confirmFx: false
+  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, showAuth: false, copied: false, showLook: false, confirmFx: false, showRename: false
 };
 // ---- appearance: saved on this device only, applied by setting CSS variables ----
 let fxStarted = false;
@@ -61,13 +61,11 @@ const params = new URLSearchParams(location.search);
 const sharedId = params.get('l');
 const isOwner = () => !!(S.user && S.list && S.list.ownerUid === S.user.uid);
 const isGoogle = () => !!(S.user && S.user.providerData.some((p) => p.providerId === 'google.com'));
-const surpriseKey = () => 'sv_surprise_' + S.listId;
-// Real state wins: if my ticks sit in the surprise doc, surprise is on. Only when I have none, use the saved choice.
-const surpriseOn = () => {
-  if (myTicks(true).length) return true;
-  if (myTicks(false).length) return false;
-  try { return localStorage.getItem(surpriseKey()) === '1'; } catch (e) { return false; }
-};
+const shownName = () => (prefs.shown || (S.profile && S.profile.name) || '');
+// Items I chose to sign with my name before ticking them (kept on this device, per list).
+const pickKey = () => 'sv_namepick_' + S.listId;
+const picks = () => { try { return new Set(JSON.parse(localStorage.getItem(pickKey()) || '[]')); } catch (e) { return new Set(); } };
+const savePicks = (set) => { try { localStorage.setItem(pickKey(), JSON.stringify([...set])); } catch (e) { /* ignore */ } };
 
 // ---- tiny DOM helper: text only, never innerHTML (names come from other people) ----
 function h(tag, attrs, ...kids) {
@@ -86,17 +84,17 @@ const go = (panel) => { S.panel = panel; S.msg = ''; render(); window.scrollTo(0
 // ---- derived data ---------------------------------------------------------------
 const itemsArr = () => S.list.order.filter((id) => S.list.items[id]).map((id) => ({ id, ...S.list.items[id] }));
 const ctx = () => ({ items: itemsArr(), repTags: S.list.repTags || [], joints: S.list.joints || [] });
-// Who ticked what. The owner only gets open ticks (the rules hide surprise ones).
+// Who ticked what. Named ticks carry the shown name, anonymous ones carry no name at all.
 function claims() {
   const c = {};
   for (const t of S.ticks) for (const id of t.items || []) {
-    if (!c[id]) c[id] = { by: t.uid, name: t.name, all: [] };
+    if (!c[id]) c[id] = { by: t.uid, name: t.name, named: !!t.named, all: [] };
     c[id].all.push(t.uid);
   }
   return c;
 }
-const myTicks = (surprise) => {
-  const t = S.ticks.find((x) => S.user && x.uid === S.user.uid && !!x.surprise === surprise);
+const myTicks = (named) => {
+  const t = S.ticks.find((x) => S.user && x.uid === S.user.uid && !!x.named === named);
   return t ? t.items.slice() : [];
 };
 
@@ -158,6 +156,8 @@ async function pickName(form) {
   if (!validName(name)) return say('Name: 3 to 20 letters, digits or _ (no spaces).', true);
   try {
     await D.reserveName(S.user, name);
+    const shown = sanitizePrefs({ shown: form.shown.value }).shown;
+    if (shown) { try { await D.savePrefs(S.user.uid, sanitizePrefs({ ...prefs, shown })); } catch (e) { /* can be set later in Account */ } }
     await route(S.user);
   } catch (e) { say(e.code === 'permission-denied' ? 'That name is taken. Pick another.' : friendlyError(e), true); }
 }
@@ -251,28 +251,36 @@ async function tickAction(item, tick) {
   const confirmed = S.warnOk; S.warnOk = false;            // "Tick anyway" counts for this one tick only
   try {
     S.ticks = await D.loadTicks(S.listId, false);            // fresh read: two people may tick together
-    const surprise = surpriseOn();
     const c = claims();
-    let open = myTicks(false), sur = myTicks(true);
+    let open = myTicks(false), sur = myTicks(true);       // open = anonymous, sur = named
     if (tick) {
       if (c[item.id] && item.repeat !== 'item' && c[item.id].by !== S.user.uid) return say('Someone just ticked that one.', true);
       const hits = bigHits(item, ctx(), c, S.user.uid);
       if (hits.length && !confirmed) { S.warn = { item, hits }; return render(); }
-      (surprise ? sur : open).push(item.id);
+      (picks().has(item.id) ? sur : open).push(item.id);
     } else { open = open.filter((x) => x !== item.id); sur = sur.filter((x) => x !== item.id); }
     S.warn = null;
-    await D.writeMyTicks(S.listId, S.user, S.profile.name, [...new Set(open)], [...new Set(sur)]);
+    await D.writeMyTicks(S.listId, S.user, shownName(), [...new Set(open)], [...new Set(sur)]);
     S.ticks = await D.loadTicks(S.listId, false); render();
   } catch (e) { say(friendlyError(e), true); }
 }
-async function setSurprise(on) {
-  try {                                                       // move my ticks to the other doc
+// The "Show my name" box on one item. If I already ticked it, move it between my two docs. If not, remember the choice for the tick.
+async function setNamed(item, on) {
+  const p = picks(); if (on) p.add(item.id); else p.delete(item.id); savePicks(p);
+  const mineOpen = myTicks(false).includes(item.id), mineNamed = myTicks(true).includes(item.id);
+  if (!mineOpen && !mineNamed) return render();
+  try {
     S.ticks = await D.loadTicks(S.listId, false);
-    const all = [...new Set([...myTicks(false), ...myTicks(true)])];
-    await D.writeMyTicks(S.listId, S.user, S.profile.name, on ? [] : all, on ? all : []);
-    try { localStorage.setItem(surpriseKey(), on ? '1' : '0'); } catch (e) { /* ignore */ }
+    const open = myTicks(false).filter((x) => x !== item.id), named = myTicks(true).filter((x) => x !== item.id);
+    (on ? named : open).push(item.id);
+    await D.writeMyTicks(S.listId, S.user, shownName(), open, named);
     S.ticks = await D.loadTicks(S.listId, false); render();
   } catch (e) { say(friendlyError(e), true); }
+}
+async function renameList(form) {
+  const title = form.title.value.trim();
+  if (!title || title.length > 80) return say('List name: 1 to 80 characters.', true);
+  try { await D.saveTitle(S.listId, S.list, title); S.showRename = false; render(); } catch (e) { say(friendlyError(e), true); }
 }
 
 // ---- delete account ---------------------------------------------------------------
@@ -291,7 +299,17 @@ async function deleteAccount(form) {
 
 // ---- pieces -----------------------------------------------------------------------
 const lookBtn = () => h('button', { class: 'link', on: { click: () => { S.showLook = true; render(); } } }, 'Appearance');
-const topBar = (right) => h('header', { class: 'top' }, h('span', { class: 'wordmark' }, 'wishlist'), h('span', { class: 'topr' }, lookBtn(), right || ''));
+// Logo: a small list card (a ticked line, two open lines) with a heart. Drawn in the accent color.
+function logo() {
+  const wrap = document.createElement('span'); wrap.className = 'logo'; wrap.setAttribute('aria-hidden', 'true');
+  wrap.innerHTML = '<svg viewBox="0 0 32 32" width="30" height="30"><rect x="3" y="2" width="22" height="28" rx="5" fill="none" stroke="currentColor" stroke-width="2.4"/>'
+    + '<path d="M7.5 10.5l2 2 3.5-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 10.5h5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
+    + '<circle cx="10" cy="17.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 17.5h5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
+    + '<circle cx="10" cy="23.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 23.5h3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
+    + '<path d="M26 18.5c-1.6-1.9-4.6-.4-3.1 1.9l3.1 3.1 3.1-3.1c1.5-2.3-1.5-3.8-3.1-1.9z" fill="currentColor"/></svg>';
+  return wrap;                      // fixed markup written here, no outside text
+}
+const topBar = (right) => h('header', { class: 'top' }, h('span', { class: 'wordmark' }, logo(), h('span', {}, 'wishlist')), h('span', { class: 'topr' }, lookBtn(), right || ''));
 const msgBox = () => S.msg ? h('div', { class: 'msg' + (S.error ? ' error' : ''), role: 'status' }, S.msg) : '';
 const field = (label, name, attrs) => h('label', { class: 'field' }, label, h('input', { name, ...attrs }));
 const textarea = (label, name, value, rows) => h('label', { class: 'field' }, label, h('textarea', { name, rows: rows || 3 }, value || ''));
@@ -321,9 +339,11 @@ function welcome() {
 }
 function pickNameScreen() {
   return [topBar(signOutBtn()), h('h1', {}, 'Pick a name'),
-    h('p', { class: 'muted' }, 'Others see this name. It cannot be changed later.'),
+    h('p', { class: 'muted' }, 'Your username. Others see it. It cannot be changed later.'),
     h('form', { on: { submit: (e) => { e.preventDefault(); pickName(e.target); } } },
       field('Name (a-z, 0-9, _)', 'name', { autocapitalize: 'none', required: true }),
+      field('Name the owner sees when you choose "Show my name" (optional)', 'shown', { maxlength: 20 }),
+      h('p', { class: 'warn' }, 'When you turn on "Show my name" for an item, the list owner sees this name. Leave it empty to use your username. You can change it later in Account.'),
       h('button', { class: 'primary', type: 'submit' }, 'Save name')), msgBox()];
 }
 function homeNoList() {
@@ -352,13 +372,16 @@ function rowFor(it, c, ctxNow, owner) {
   const meta = [];
   if (mine) meta.push("you're buying this");
   else if (claim && !owner && it.repeat !== 'item') meta.push('someone is buying this');
-  else if (owner && claim) meta.push('someone is buying this');
+  else if (owner && claim) meta.push(claim.named && claim.name ? claim.name + ' is buying this' : 'someone is buying this');
   if (it.tags.length) meta.push(it.tags.join(' · '));
   if (it.repeat === 'item') meta.push('can be bought many times');
   const note = !owner && S.user && S.profile && !taken && !mine ? smallNote(it, ctxNow, c) : null;
   const body = h('div', { class: 'body' },
     h('div', { class: 'top2' }, h('span', { class: 'name' + (it.got || taken ? ' dim' : '') }, it.name),
       h('span', { class: 'price' }, priceText(it))),
+    !owner && S.user && S.profile && !taken
+      ? h('label', { class: 'check showname' }, h('input', { type: 'checkbox', checked: myTicks(true).includes(it.id) || (!mine && picks().has(it.id)),
+        on: { change: (e) => setNamed(it, e.target.checked) } }), ' Show my name to the owner') : '',
     meta.length ? h('div', { class: 'meta' }, meta.join(' · ')) : '',
     isHttps(it.picUrl) || it.picV ? picEl(it) : '',
     it.note ? h('div', { class: 'note' }, it.note) : '',
@@ -404,7 +427,7 @@ function listScreen() {
     ? h('span', {}, h('button', { class: 'link', on: { click: () => go('account') } }, 'Account'), signOutBtn())
     : signInBtn();
   const t = totalToGet(S.list), cNow = claims(), cx = ctx();
-  side.push(h('h1', {}, S.list.title), h('p', { class: 'muted' }, `${t.count} items · ${t.got} got · ${baht(t.sum)} to go`));
+  side.push(h('h1', {}, S.list.title), owner ? h('button', { class: 'link', on: { click: () => { S.showRename = true; render(); } } }, 'Rename list') : '', h('p', { class: 'muted' }, `${t.count} items · ${t.got} got · ${baht(t.sum)} to go`));
   if (owner) {                                            // owner tools at the top
     side.push(h('button', { class: 'primary', on: { click: () => { S.editId = null; go('edit'); } } }, 'Add an item'),
       h('div', { class: 'seg' },
@@ -415,8 +438,7 @@ function listScreen() {
   }
   side.push(S.showAuth && !S.user ? '' : msgBox());
   if (!owner && S.user && S.profile) {
-    side.push(h('label', { class: 'check surprise' }, h('input', { type: 'checkbox', checked: surpriseOn(), on: { change: (e) => setSurprise(e.target.checked) } }),
-      ' Surprise mode: the owner cannot see my ticks'));
+    side.push(h('p', { class: 'muted small' }, 'The owner sees "someone" on items you tick. On any item you can turn on "Show my name" and the owner sees: ' + shownName() + '. Change that name in Account.'));
   }
   const tabs = [['all', 'All'], ...PRIORITIES, ['got', 'Got']];
   out.push(h('nav', { class: 'tabs', 'aria-label': 'Priority' }, tabs.map(([k, label]) =>
@@ -454,9 +476,18 @@ function lookDialog() {
         h('button', { type: 'button', 'aria-pressed': String(prefs.effect === v),
           on: { click: () => { if (v && !prefs.effect) { S.confirmFx = true; render(); } else if (!v) setPrefs({ effect: false }); } } }, label))),
       h('p', { class: 'muted small' }, 'Cursors build the page when it opens. It uses more data and battery, can feel confusing or slow, and may cause other display problems. Takes effect the next time you open the page.'),
-      h('button', { class: 'secondary', on: { click: () => setPrefs(DEFAULT_PREFS) } }, 'Reset to pink')));
+      h('button', { class: 'secondary', on: { click: () => setPrefs({ ...DEFAULT_PREFS, shown: prefs.shown }) } }, 'Reset to pink')));
 }
 
+function renameDialog() {
+  if (!S.showRename || !S.list) return '';
+  return h('div', { class: 'overlay', role: 'dialog', 'aria-label': 'Rename list' },
+    h('div', { class: 'dialog' }, h('h1', {}, 'Rename list'),
+      h('form', { on: { submit: (e) => { e.preventDefault(); renameList(e.target); } } },
+        field('List name', 'title', { value: S.list.title, maxlength: 80, required: true }),
+        h('button', { class: 'primary', type: 'submit' }, 'Save'),
+        h('button', { class: 'secondary', type: 'button', on: { click: () => { S.showRename = false; render(); } } }, 'Cancel'))));
+}
 function fxConfirm() {
   if (!S.confirmFx) return '';
   const close = () => { S.confirmFx = false; render(); };
@@ -549,7 +580,12 @@ function accountScreen() {
     field('Type your name to confirm', 'confirm', { autocapitalize: 'none', required: true }),
     isGoogle() ? '' : field('Password', 'pass', { type: 'password', required: true }),
     h('button', { class: 'secondary danger', type: 'submit' }, 'Delete my account'));
-  return [topBar(backBtn()), h('h1', {}, S.profile.name), h('p', { class: 'muted' }, isGoogle() ? 'Signed in with Google.' : 'Signed in with name + password.'), form, msgBox()];
+  const shownForm = h('form', { on: { submit: (e) => { e.preventDefault(); setPrefs({ shown: e.target.shown.value }); say('Saved.'); } } },
+    h('h2', {}, h('span', {}, 'Name the owner sees')),
+    field('Shown when you tick "Show my name" (empty = your username)', 'shown', { value: prefs.shown, maxlength: 20 }),
+    h('p', { class: 'warn' }, 'This name is displayed to list owners on items where you turn on "Show my name". It is not unique and does not change your username.'),
+    h('button', { class: 'primary', type: 'submit' }, 'Save shown name'));
+  return [topBar(backBtn()), h('h1', {}, S.profile.name), h('p', { class: 'muted' }, isGoogle() ? 'Signed in with Google.' : 'Signed in with name + password.'), shownForm, form, msgBox()];
 }
 
 function render() {
@@ -564,8 +600,9 @@ function render() {
       : S.panel === 'account' && S.profile ? accountScreen() : listScreen();
   } else content = [h('p', { class: 'loading' }, 'Loading…')];
   if (!(S.screen === 'list' && S.panel === 'list')) content = [h('div', { class: 'narrow' }, content)];   // forms stay narrow on wide screens
-  content.push(warnBox(), authDialog(), lookDialog(), fxConfirm());
+  content.push(warnBox(), authDialog(), lookDialog(), fxConfirm(), renameDialog());
   if (prefs.effect && S.screen === 'list' && !fxStarted) { fxStarted = true; requestAnimationFrame(() => runEffect()); }
+  root.dataset.view = S.screen === 'list' && S.panel === 'list' && isOwner() ? 'owner' : 'other';
   root.replaceChildren(...content);
 }
 applyPrefs();
