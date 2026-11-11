@@ -6,15 +6,16 @@ import {
   signOut, deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig } from './config.js';
+import { firebaseConfig } from './config.js?v=20261112f';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
-  groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps,
+  groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
   DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, sanitizePrefs
-} from './logic.js';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js';
-import { makeData } from './data.js';
-import { runEffect } from './effect.js';
+} from './logic.js?v=20261112f';
+import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112f';
+import { makeData } from './data.js?v=20261112f';
+import { runEffect } from './effect.js?v=20261112f';
+import { openViewer } from './viewer.js?v=20261112f';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -82,6 +83,13 @@ function h(tag, attrs, ...kids) {
   return el;
 }
 const say = (msg, error = false) => { S.msg = msg; S.error = error; render(); };
+// An error inside the item form: show it without rebuilding the page, so typed text and picked pictures stay.
+function formSay(form, msg) {
+  S.msg = msg; S.error = true;
+  let el = document.querySelector('#app .msg');
+  if (!el) { el = h('div', { class: 'msg error', role: 'status' }); form.parentElement.append(el); }
+  el.className = 'msg error'; el.textContent = msg;
+}
 const go = (panel) => { S.panel = panel; S.msg = ''; render(); window.scrollTo(0, 0); };
 
 // ---- derived data ---------------------------------------------------------------
@@ -174,25 +182,28 @@ async function saveItemForm(form, id) {
   const v = {
     name: form.name.value, price: form.price.value, priceMax: form.priceMax.value, approx: form.approx.checked,
     priority: form.priority.value, note: form.note.value, tags: form.tags.value, urls: form.urls.value,
-    repeat: form.repeat.checked, got: form.got.checked, picUrl: form.picUrl.value
+    repeat: form.repeat.checked, got: form.got.checked, picUrls: form.picUrls.value
   };
   const bad = checkItemInput(v);
-  if (bad) return say(bad, true);
+  if (bad) return formSay(form, bad);
   const newId = id || nextItemId(S.list.items);
-  if (!newId) return say('The list is full (100 items).', true);
+  if (!newId) return formSay(form, 'The list is full (100 items).');
   try {
     const item = itemFromForm(v, S.list.items[newId] || {});
-    const file = form.pic.files[0];
-    if (file) {                                     // picture first, then the item that points to it
-      const dataUrl = await shrinkImage(file);
-      await D.savePic(S.listId, newId, dataUrl);
-      item.picV = Date.now(); delete S.pics[S.listId + newId];   // new number every time: caches never go stale
-    } else if (form.removePic && form.removePic.checked && item.picV) {
-      await D.deletePic(S.listId, newId); item.picV = 0; delete S.pics[S.listId + newId];
+    // two upload slots: slot 0 is stored as iNN, slot 1 as iNN_1; a new version number each time keeps caches fresh
+    for (const [slot, field, rmField, verKey] of [[0, 'pic', 'removePic', 'picV'], [1, 'pic2', 'removePic2', 'picV1']]) {
+      const file = form[field].files[0], key = slot ? newId + '_1' : newId;
+      if (file) {
+        const dataUrl = await shrinkImage(file);
+        await D.savePic(S.listId, key, dataUrl);
+        item[verKey] = Date.now();
+      } else if (form[rmField] && form[rmField].checked && item[verKey]) {
+        await D.deletePic(S.listId, key); item[verKey] = 0;
+      }
     }
     await D.saveItem(S.listId, S.list, newId, item);
     S.panel = 'list'; say('Saved.');
-  } catch (e) { say(friendlyError(e), true); }
+  } catch (e) { formSay(form, friendlyError(e)); }
 }
 async function deleteItem(id) {
   try { await D.removeItem(S.listId, S.list, id); S.panel = 'list'; say('Deleted.'); } catch (e) { say(friendlyError(e), true); }
@@ -418,7 +429,11 @@ function rowFor(it, c, ctxNow, owner) {
       S.reorder ? [h('button', { class: 'link', 'aria-label': 'Move up', on: { click: () => move(it.id, -1) } }, '▲'),
         h('button', { class: 'link', 'aria-label': 'Move down', on: { click: () => move(it.id, 1) } }, '▼')] : '',
       h('button', { class: 'link', on: { click: () => { S.editId = it.id; go('edit'); } } }, 'Edit')) : '');
-  const thumb = isHttps(it.picUrl) || it.picV ? picEl(it) : h('span', { class: 'pic ph', 'aria-hidden': 'true' }, (it.name || '?').slice(0, 1).toUpperCase());
+  const pics = itemPics(it);
+  const thumb = pics.length
+    ? h('button', { type: 'button', class: 'thumb', 'aria-label': pics.length > 1 ? `Show ${pics.length} pictures of ${it.name}` : 'Show picture of ' + it.name, on: { click: () => showPics(it) } },
+        picEl(it, pics[0]), pics.length > 1 ? h('span', { class: 'count', 'aria-hidden': 'true' }, '1/' + pics.length) : '')
+    : h('span', { class: 'pic ph', 'aria-hidden': 'true' }, (it.name || '?').slice(0, 1).toUpperCase());
   return h('div', { class: 'row' + (owner ? ' owner' : '') }, lead, thumb, body);
 }
 const linkLabel = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return 'link'; } };
@@ -432,20 +447,24 @@ function smallNote(it, ctxNow, c) {
   return (x.mine ? 'you are buying a ' : 'someone is buying a ') + x.name + ' item with the same ' + x.tags.join(', ') + ' tag';
 }
 
-// Picture: link first, else the small picture stored in Firestore (loaded lazily, cached on the device).
-function picEl(it) {
+// One picture as an <img>: a link shows straight away, an uploaded one is loaded from Firestore (cached on the device).
+function picSrc(it, p) {
+  if (p.url) return Promise.resolve(p.url);
+  const key = S.listId + it.id + '_' + p.slot + ':' + p.v;
+  let cached = ''; try { cached = localStorage.getItem('sv_pic_' + key) || ''; } catch (e) { /* ignore */ }
+  if (cached) return Promise.resolve(cached);
+  return D.loadPic(S.listId, p.slot ? it.id + '_1' : it.id).then((d) => {
+    if (!d.startsWith('data:image/')) return '';
+    try { localStorage.setItem('sv_pic_' + key, d); } catch (e) { /* storage full: fine */ }
+    return d;
+  });
+}
+function picEl(it, p) {
   const img = h('img', { class: 'pic', alt: '', loading: 'lazy', referrerpolicy: 'no-referrer', width: 72, height: 72 });
-  if (it.picV) {
-    const key = S.listId + it.id + ':' + it.picV;
-    let cached = ''; try { cached = localStorage.getItem('sv_pic_' + key) || ''; } catch (e) { /* ignore */ }
-    if (cached) img.src = cached;
-    else D.loadPic(S.listId, it.id).then((d) => {
-      if (!d.startsWith('data:image/')) return;
-      img.src = d; try { localStorage.setItem('sv_pic_' + key, d); } catch (e) { /* storage full: fine */ }
-    }).catch(() => {});
-  } else if (isHttps(it.picUrl)) img.src = it.picUrl;
+  picSrc(it, p).then((src) => { if (src) img.src = src; }).catch(() => {});
   return img;
 }
+function showPics(it) { openViewer(itemPics(it).map((p) => ({ load: () => picSrc(it, p) })), 0, it.name + ' pictures'); }
 
 function listScreen() {
   const owner = isOwner();
@@ -566,9 +585,11 @@ function editScreen() {
     field('Tags (comma, max 5)', 'tags', { value: it ? it.tags.join(', ') : '' }),
     textarea('Note', 'note', it ? it.note : '', 2),
     textarea('Links (one per line, https, max 3)', 'urls', it ? it.urls.join('\n') : '', 3),
-    field('Picture link (https)', 'picUrl', { type: 'url', value: it ? it.picUrl : '' }),
-    h('label', { class: 'field' }, 'Or upload a small picture', h('input', { type: 'file', name: 'pic', accept: 'image/*' })),
-    it && it.picV ? check('Remove my uploaded picture', 'removePic', false) : '',
+    textarea('Picture links (one per line, https, max 8)', 'picUrls', it ? picLinksOf(it).join('\n') : '', 3),
+    h('label', { class: 'field' }, 'Upload picture 1 (small)', h('input', { type: 'file', name: 'pic', accept: 'image/*' })),
+    it && it.picV ? check('Remove uploaded picture 1', 'removePic', false) : '',
+    h('label', { class: 'field' }, 'Upload picture 2 (small)', h('input', { type: 'file', name: 'pic2', accept: 'image/*' })),
+    it && it.picV1 ? check('Remove uploaded picture 2', 'removePic2', false) : '',
     check('Can be bought many times', 'repeat', it && it.repeat === 'item'),
     check('Got it already', 'got', it && it.got),
     h('button', { class: 'primary', type: 'submit' }, 'Save'));

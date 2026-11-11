@@ -3,8 +3,8 @@ import {
   doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, writeBatch, collection, collectionGroup,
   query, where, serverTimestamp, deleteField
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { newListId, mapOldItem, nextItemId } from './logic.js';
-import { normTag } from './tags.js';
+import { newListId, mapOldItem, nextItemId } from './logic.js?v=20261112f';
+import { normTag } from './tags.js?v=20261112f';
 
 export function makeData(db) {
   const listRef = (id) => doc(db, 'lists', id);
@@ -50,7 +50,9 @@ export function makeData(db) {
     list.items[id] = item; list.order = order; list.lastId = id;
   }
   async function removeItem(listId, list, id) {
-    if (list.items[id] && list.items[id].picV) await deleteDoc(picRef(listId, id));
+    const gone = list.items[id];
+    if (gone && gone.picV) await deleteDoc(picRef(listId, id));
+    if (gone && gone.picV1) await deleteDoc(picRef(listId, id + '_1'));
     const order = list.order.filter((x) => x !== id);
     await updateDoc(listRef(listId), { ['items.' + id]: deleteField(), order, lastId: id, updatedAt: serverTimestamp() });
     delete list.items[id]; list.order = order; list.lastId = id;
@@ -124,7 +126,10 @@ export function makeData(db) {
       onStep('Removing my list');
       const l = id === profile.l0 && list ? list : await getList(id);
       if (l) {
-        for (const itemId of Object.keys(l.items || {})) if (l.items[itemId].picV) await deleteDoc(picRef(id, itemId));
+        for (const itemId of Object.keys(l.items || {})) {
+          if (l.items[itemId].picV) await deleteDoc(picRef(id, itemId));
+          if (l.items[itemId].picV1) await deleteDoc(picRef(id, itemId + '_1'));
+        }
         await deleteDoc(listRef(id));
       }
     }

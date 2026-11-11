@@ -96,6 +96,23 @@ export function parseUrls(text) {
   return String(text || '').split(/\s*\n\s*/).map((s) => s.trim()).filter(isHttps).map((s) => s.slice(0, 450)).slice(0, 3);
 }
 
+// Picture links: one per line, https only, max 8 (they cost no storage; the pictures stay on the other site).
+export const MAX_PIC_LINKS = 8;
+export function parsePicUrls(text) {
+  return String(text || '').split(/\s*\n\s*/).map((s) => s.trim()).filter(isHttps).map((s) => s.slice(0, 450)).slice(0, MAX_PIC_LINKS);
+}
+// Every picture of an item, in show order: up to 2 uploaded ones (slot 0, 1), then the links.
+// Old items kept one link in picUrl; it still counts when picUrls is empty.
+export function itemPics(it) {
+  const out = [];
+  if (it.picV) out.push({ slot: 0, v: it.picV });
+  if (it.picV1) out.push({ slot: 1, v: it.picV1 });
+  const links = Array.isArray(it.picUrls) && it.picUrls.length ? it.picUrls : (it.picUrl ? [it.picUrl] : []);
+  links.filter(isHttps).forEach((url) => out.push({ url }));
+  return out;
+}
+export const picLinksOf = (it) => (Array.isArray(it.picUrls) && it.picUrls.length ? it.picUrls : (it.picUrl ? [it.picUrl] : [])).filter(isHttps);
+
 // Form values -> a full item (every field the rules read must exist).
 export function itemFromForm(v, prev = {}) {
   const num = (x) => { const n = Number(x); return Number.isFinite(n) && n > 0 ? n : 0; };
@@ -110,8 +127,10 @@ export function itemFromForm(v, prev = {}) {
     tags: parseTags(v.tags),
     repeat: v.repeat ? 'item' : '',
     got: !!v.got,
-    picUrl: isHttps(v.picUrl) ? String(v.picUrl).trim().slice(0, 500) : '',
-    picV: prev.picV || 0
+    picUrl: '',                                   // old single link; new saves use picUrls
+    picUrls: parsePicUrls(v.picUrls),
+    picV: prev.picV || 0,
+    picV1: prev.picV1 || 0
   };
 }
 
@@ -119,7 +138,9 @@ export function checkItemInput(v) {
   const n = String(v.name || '').trim();
   if (!n) return 'Give the item a name.';
   if (n.length > 120) return 'The name is too long (max 120).';
-  if (v.picUrl && !isHttps(v.picUrl)) return 'Picture link must start with https://';
+  const badLine = String(v.picUrls || '').split(/\n/).map((x) => x.trim()).find((x) => x && !isHttps(x));
+  if (badLine) return 'Every picture link must start with https://';
+  if (String(v.picUrls || '').split(/\n/).filter((x) => x.trim()).length > MAX_PIC_LINKS) return 'Max ' + MAX_PIC_LINKS + ' picture links.';
   if (v.price !== '' && v.price != null && !(Number(v.price) >= 0)) return 'Price must be a number.';
   return '';
 }
@@ -140,9 +161,10 @@ export function moveInOrder(list, id, dir) {
 export function mapOldItem(old, baseUrl) {
   const num = (x) => { const n = Number(x); return Number.isFinite(n) && n > 0 ? n : 0; };
   const tags = parseTags((old.tags || []).join(','));
-  let picUrl = '';
-  const first = (old.imgs || [])[0];
-  if (first && baseUrl) { try { picUrl = new URL(String(first).split('?')[0], baseUrl).href.slice(0, 500); } catch (e) { /* skip */ } }
+  const picUrls = [];
+  if (baseUrl) for (const img of (old.imgs || []).slice(0, MAX_PIC_LINKS)) {
+    try { const u = new URL(String(img).split('?')[0], baseUrl).href.slice(0, 450); if (isHttps(u)) picUrls.push(u); } catch (e) { /* skip */ }
+  }
   return {
     item: {
       name: String(old.name || 'Untitled').trim().slice(0, 120),
@@ -150,7 +172,7 @@ export function mapOldItem(old, baseUrl) {
       urls: parseUrls((old.urls || []).join('\n')), note: String(old.note || '').slice(0, 500),
       priority: PRIORITIES.some(([k]) => k === old.priority) ? old.priority : 'want',
       tags, repeat: old.repeat === 'item' ? 'item' : '', got: !!old.got,
-      picUrl: isHttps(picUrl) ? picUrl : '', picV: 0
+      picUrl: '', picUrls, picV: 0, picV1: 0
     },
     repTagsAdd: old.repeat === 'tag' ? tags.map(normTagKey) : []
   };

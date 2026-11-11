@@ -1,19 +1,78 @@
+// Stage 3 + multi pictures (2 uploads iNN / iNN_1, up to 8 links in picUrls). From the Fable design. Tested 2026-11-11 in the Firebase emulator: 39 cases (tests/rules_cases.mjs) + browser flows (tests/ui_e2e.py), all pass.
+// Not yet tested on the live project (see docs/setup-steps.md, step 'Live checks').
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    match /claims/{itemId} {
-      allow read: if true;
-      allow create: if request.auth != null
-        && request.resource.data.by == request.auth.uid
-        && request.resource.data.keys().hasOnly(['by','status','at'])
-        && request.resource.data.status in ['buying','bought'];
-      allow update: if request.auth != null
-        && resource.data.by == request.auth.uid
-        && request.resource.data.by == request.auth.uid
-        && request.resource.data.keys().hasOnly(['by','status','at'])
-        && request.resource.data.status in ['buying','bought'];
-      allow delete: if request.auth != null
-        && resource.data.by == request.auth.uid;
-    }
+ match /databases/{database}/documents {
+  function uid() { return request.auth.uid; }
+  function signedIn() { return request.auth != null; }
+  function prov() { return request.auth.token.firebase.sign_in_provider; }
+  function d() { return request.resource.data; }
+  function userAfter() { return getAfter(/databases/$(database)/documents/users/$(uid())).data; }
+  function listDoc(l) { return get(/databases/$(database)/documents/lists/$(l)).data; }
+  function gone(l) { return l == '' || !existsAfter(/databases/$(database)/documents/lists/$(l)); }
+  // A slot is empty or permanent. This keeps each account at 3 lists and 300 pictures.
+  function slotOk(k) { return d()[k] == resource.data[k] || (resource.data[k] == '' && d()[k].matches('^[A-Za-z0-9]{20}$')); }
+  function userShape() { return d().keys().hasOnly(['name','l0','l1','l2','prefs']) && d().name is string
+    && d().l0 is string && d().l1 is string && d().l2 is string && d().prefs is map && d().prefs.size() <= 20; }
+  function tagOk(t, n) { return t.size() <= n || t[n].size() <= 30; }
+  function itemOk(i) { return i.keys().hasOnly(['name','price','priceMax','approx','urls','note','priority','tags','repeat','got','picUrl','picUrls','picV','picV1'])
+    && i.name is string && i.name.size() > 0 && i.name.size() <= 120 && i.note is string && i.note.size() <= 500
+    && i.urls is list && i.urls.size() <= 3 && i.urls.join('').size() <= 1500
+    && i.tags is list && i.tags.size() <= 5 && tagOk(i.tags,0) && tagOk(i.tags,1) && tagOk(i.tags,2) && tagOk(i.tags,3) && tagOk(i.tags,4)
+    && i.priority in ['must','should','want','someday','essential'] && i.repeat in ['', 'item'] && i.got is bool
+    && i.get('picUrl','').size() <= 500 && i.get('price',0) is number && i.get('priceMax',0) is number
+    && i.get('picUrls',[]) is list && i.get('picUrls',[]).size() <= 8 && i.get('picUrls',[]).join('').size() <= 4000
+    && i.get('approx',false) is bool && i.get('picV',0) is int && i.get('picV1',0) is int; }
+  function listShape() { return d().keys().hasOnly(['ownerUid','ownerName','title','repTags','joints','items','order','lastId','updatedAt'])
+    && d().ownerUid == uid() && d().title is string && d().title.size() <= 80 && d().repTags is list && d().repTags.size() <= 30
+    && d().joints is list && d().joints.size() <= 20 && d().items is map && d().order is list && d().order.size() <= 100; }
+  // One write changes a maximum of one item. Rules check that item fully.
+  function oneItemChange() { return d().items.diff(resource.data.items).affectedKeys().hasOnly([d().lastId])
+    && d().lastId.matches('^i[0-9]{2}$') && (!(d().lastId in d().items) || itemOk(d().items[d().lastId])); }
+
+  // NAME RESERVE: create only if the doc is absent. No update. One name for each user.
+  match /names/{name} {
+   allow get: if signedIn();
+   allow create: if signedIn() && name.matches('^[a-z0-9_]{3,20}$') && d().keys().hasOnly(['uid']) && d().uid == uid()
+     && userAfter().name == name && (prov() != 'password' || request.auth.token.email == name + '@ticker.invalid');
+   allow delete: if signedIn() && resource.data.uid == uid() && !existsAfter(/databases/$(database)/documents/users/$(uid()));
   }
+  match /users/{u} {
+   allow read: if signedIn() && u == uid();
+   allow create: if signedIn() && u == uid() && userShape() && d().l0 == '' && d().l1 == '' && d().l2 == ''
+     && getAfter(/databases/$(database)/documents/names/$(d().name)).data.uid == uid();
+   allow update: if signedIn() && u == uid() && userShape() && d().name == resource.data.name
+     && slotOk('l0') && slotOk('l1') && slotOk('l2');
+   // ACCOUNT DELETE: lists must be gone first. The name doc goes in the same batch.
+   allow delete: if signedIn() && u == uid() && gone(resource.data.l0) && gone(resource.data.l1) && gone(resource.data.l2)
+     && !existsAfter(/databases/$(database)/documents/names/$(resource.data.name));
+  }
+  match /lists/{l} {
+   allow get: if true;   // public share link; no "list" rule, so no one can enumerate lists
+   allow create: if signedIn() && prov() == 'google.com' && listShape() && d().items.size() == 0
+     && l in [userAfter().l0, userAfter().l1, userAfter().l2] && d().ownerName == userAfter().name;
+   allow update: if signedIn() && resource.data.ownerUid == uid() && listShape()
+     && d().ownerName == resource.data.ownerName && oneItemChange();
+   allow delete: if signedIn() && resource.data.ownerUid == uid();
+   match /pics/{p} {
+    allow get: if true;
+    allow create, update: if signedIn() && listDoc(l).ownerUid == uid() && p.matches('^i[0-9]{2}(_1)?$')
+      && d().keys().hasOnly(['data']) && d().data is string && d().data.size() <= 60000
+      && d().data.matches('^data:image/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$');
+    allow delete: if signedIn() && listDoc(l).ownerUid == uid();   // delete pictures BEFORE the list
+   }
+   match /ticks/{t} {
+    // Two doc types per ticker: uid_a = anonymous (name is empty), uid_n = named (the shown name).
+    // Version 2 only (v == 2). The owner may only query v == 2 docs, so older tick docs stay hidden from the owner.
+    allow read: if signedIn() && (listDoc(l).ownerUid != uid() || resource.data.v == 2);
+    allow create, update: if signedIn() && listDoc(l).ownerUid != uid() && d().named is bool && d().v == 2
+      && t == uid() + (d().named ? '_n' : '_a') && d().keys().hasOnly(['uid','name','named','v','items','updatedAt'])
+      && d().uid == uid() && d().name is string && (d().named ? (d().name.size() >= 1 && d().name.size() <= 20) : d().name == '')
+      && d().items is list && d().items.size() <= 100 && d().items.join('').size() <= 300;
+    allow delete: if signedIn() && t in [uid() + '_a', uid() + '_n', uid() + '_o', uid() + '_s'];   // no get(): works after the list is gone
+   }
+  }
+  // A ticker finds all of his own ticks (for account delete). Query: collectionGroup('ticks').where('uid','==',me).
+  match /{path=**}/ticks/{t} { allow read: if signedIn() && resource.data.uid == uid(); }
+ }
 }
