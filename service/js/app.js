@@ -459,7 +459,7 @@ function listScreen() {
   side.push(h('h1', {}, S.list.title), owner ? h('button', { class: 'link', on: { click: () => { S.showRename = true; render(); } } }, 'Rename list') : '',
     h('div', { class: 'stat' }, h('span', { class: 'big' }, `${t.got} of ${t.count}`), h('span', { class: 'muted small' }, ' items got')),
     h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': t.count, 'aria-valuenow': t.got },
-      h('div', { style: 'width:' + Math.max(pct, 3) + '%' }), h('i', { style: 'left:calc(' + Math.max(pct, 3) + '% - 3px)' })));
+      h('div', { style: 'width:' + pct + '%' }), h('i', { style: 'left:calc((100% - 10px) * ' + (pct / 100) + ')' })));
   if (owner) {                                            // owner tools at the top
     side.push(h('button', { class: 'primary', on: { click: () => { S.editId = null; go('edit'); } } }, 'Add an item'),
       h('div', { class: 'seg' },
