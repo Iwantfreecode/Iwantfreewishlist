@@ -278,7 +278,7 @@ function authBlock() {
       signup ? h('p', { class: 'warn' }, 'No password reset. If you forget it, the account is lost.') : '',
       h('button', { class: 'primary', type: 'submit', disabled: S.busy }, signup ? 'Create account' : 'Sign in'),
       h('button', { class: 'link', type: 'button', on: { click: () => { S.mode = signup ? 'signin' : 'signup'; S.msg = ''; render(); } } },
-        signup ? 'I already have an account' : 'Press here to create new account'))
+        signup ? 'I already have an account' : 'New here? Press here to create new account'))
   ];
 }
 
