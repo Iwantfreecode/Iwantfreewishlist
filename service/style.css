@@ -21,8 +21,6 @@ header.top { position: sticky; top: 0; z-index: 4; background: var(--bg); displa
 .wordmark { display: flex; align-items: center; gap: 8px; color: var(--accent); }
 .wordmark span:last-child { color: var(--ink); }
 .logo { display: inline-flex; color: var(--accent); }
-.showname { font-size: 14px; color: var(--muted); margin: 4px 0 0; min-height: 0; }
-.showname input { width: 18px; height: 18px; }
 @media (max-width: 480px) { .wordmark span:last-child { display: none; } .topr .link, .topr .pill { padding: 0 9px; font-size: 14px; } }
 .wordmark { font-weight: 600; letter-spacing: -0.01em; }
 h1 { margin: 20px 0 0; font: 400 40px/1.05 var(--display); letter-spacing: -0.01em; }
@@ -78,7 +76,6 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0 0; }
 textarea { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-size: 17px; }
 .check { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 6px; font-size: 16px; }
 .check input { width: 22px; height: 22px; accent-color: var(--accent); }
-.surprise { font-size: 14px; color: var(--muted); }
 .tick span.on-mine { background: var(--accent); border-color: var(--accent); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E"); background-size: 14px; background-repeat: no-repeat; background-position: center; }
 .tick span.on-other { background: var(--line); border-color: var(--line); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E"); background-size: 14px; background-repeat: no-repeat; background-position: center; }
 .dim { color: var(--muted); }
@@ -106,9 +103,6 @@ textarea { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; bor
 .dots i { width: 14px; height: 14px; border-radius: 7px; margin-left: -4px; }
 .dots i:first-child { width: 22px; height: 22px; border-radius: 11px; margin-left: 0; }
 .dots i:last-child { width: 10px; height: 10px; border-radius: 5px; }
-.swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
-.swatch { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line); }
-.swatch[aria-pressed="true"] { border: 3px solid var(--ink); }
 .topr { display: flex; align-items: center; gap: 2px; }
 .seg { flex-wrap: wrap; }
 .seg button { min-width: 30%; }

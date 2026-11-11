@@ -1,4 +1,4 @@
-// wishlist service (stage 3): lists, items, tags, ticks + surprise mode, pictures, account delete, import.
+// wishlist service (stage 3): lists, items, tags, ticks + per-item name switch, pictures, account delete, import.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import {
   getAuth, connectAuthEmulator, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup,
