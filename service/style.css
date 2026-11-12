@@ -290,7 +290,7 @@ h4 { margin: 24px 0 0; font-size: calc(15px * var(--ts)); font-weight: 600; }
 :root[data-layout="text"] .chip:has(input:checked) { background: var(--ink); color: var(--bg); }
 :root[data-layout="text"] .chip:has(input:checked) svg { display: none; }
 :root[data-layout="text"] .chip:has(input:checked)::before { content: '[x] '; white-space: pre; }
-:root[data-layout="text"] .sheet, :root[data-layout="text"] .tile, :root[data-layout="text"] .card { border-radius: 0; }
+:root[data-layout="text"] .card { border-radius: 0; }
 
 /* import screen */
 .improw { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 4px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--line); }
