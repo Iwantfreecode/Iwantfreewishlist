@@ -1,5 +1,5 @@
 // Little swipeable picture stack for a list row (like the iMessage photo stack).
-// The top card is the current picture; the next ones peek out behind it, a bit to the right.
+// The top card is the current picture. The next ones peek out behind it to the right; the ones already seen stack up behind it to the left.
 // Swipe left/right on it to change picture. A tap (no swipe) calls onOpen(index) to show the big viewer.
 //   pics: [{ load: () => Promise<string> }]   start: first index   onChange(i): called after each change
 export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
@@ -31,11 +31,16 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     }).catch(() => {});
   }
 
-  // where each card sits: gone to the left (already seen), top, or behind (1, 2, hidden deeper)
+  // where each card sits: top, or behind it (1 or 2 deep) on the right (next) or the left (already seen); deeper ones are hidden
   const POS = [
     'translateX(0)',
     'translate(7px,-4px) rotate(4deg) scale(.95)',
     'translate(13px,-7px) rotate(8deg) scale(.9)'
+  ];
+  const POS_SEEN = [
+    'translateX(0)',
+    'translate(-7px,-4px) rotate(-4deg) scale(.95)',
+    'translate(-13px,-7px) rotate(-8deg) scale(.9)'
   ];
   let dx = 0;
   function place() {
@@ -44,7 +49,7 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
       c.style.transition = reduce ? 'none' : 'transform .22s ease-out, opacity .22s ease-out';
       c.style.zIndex = String(100 - Math.abs(d) * 2 + (d < 0 ? -1 : 0));
       c.style.pointerEvents = 'none';
-      if (d < 0) { c.style.transform = 'translateX(-130%) rotate(-10deg)'; c.style.opacity = '0'; }
+      if (d < 0) { c.style.transform = POS_SEEN[Math.min(-d, 2)]; c.style.opacity = d < -2 ? '0' : '1'; }
       else if (d === 0) { c.style.transform = dx ? `translateX(${dx}px) rotate(${dx / 12}deg)` : POS[0]; c.style.opacity = '1'; }
       else { c.style.transform = POS[Math.min(d, 2)]; c.style.opacity = d > 2 ? '0' : '1'; }
     });

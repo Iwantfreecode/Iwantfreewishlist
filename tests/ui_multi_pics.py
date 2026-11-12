@@ -55,6 +55,8 @@ try:
     pg.locator('.row .thumb').tap(); pg.wait_for_selector('#viewer img',timeout=10000)
     ok('tap opens viewer on the current picture (2 / 4)',pg.inner_text('.vcount')=='2 / 4',pg.inner_text('.vcount'))
     pg.click('.vclose'); pg.screenshot(path='/tmp/emu/stack.png')
+    ok('seen picture stacks up on the LEFT behind the top one', pg.evaluate("(()=>{const c=document.querySelectorAll('.row .thumb .card')[0];return c.style.transform.startsWith('translate(-7px')&&c.style.opacity==='1';})()"))
+    pg.locator('.row .thumb').first.screenshot(path='/tmp/emu/stack_left.png')
     # a picture must never float on top of a popup (seen on the iPad, 2026-11-12)
     pg.set_viewport_size({'width':1180,'height':820}); time.sleep(.5)   # iPad Air landscape
     pg.click('button:has-text("Appearance")'); pg.wait_for_selector('.overlay'); time.sleep(.3)
