@@ -6,17 +6,17 @@ import {
   signOut, deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig } from './config.js?v=20261112i';
+import { firebaseConfig } from './config.js?v=20261112j';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
   DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs
-} from './logic.js?v=20261112i';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112i';
-import { makeData } from './data.js?v=20261112i';
-import { runEffect } from './effect.js?v=20261112i';
-import { openViewer } from './viewer.js?v=20261112i';
-import { stackThumb } from './stack.js?v=20261112i';
+} from './logic.js?v=20261112j';
+import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112j';
+import { makeData } from './data.js?v=20261112j';
+import { runEffect } from './effect.js?v=20261112j';
+import { openViewer } from './viewer.js?v=20261112j';
+import { stackThumb } from './stack.js?v=20261112j';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -49,8 +49,8 @@ function applyPrefs() {
   const set = (k, val) => root.style.setProperty(k, val);
   set('--accent', v.accent); set('--accent-ink', v.accentInk); set('--on-accent', v.onAccent); set('--soft', v.soft);
   set('--touch', v.touch); set('--touch-soft', v.touchSoft); set('--extra', v.extra); set('--extra-soft', v.extraSoft);
-  set('--font', FONTS[prefs.font]);
-  set('--display', prefs.font === 'clean' ? "'Instrument Serif', Georgia, serif" : FONTS[prefs.font]);
+  set('--font', prefs.layout === 'text' ? "'Courier Prime', 'Courier New', monospace" : FONTS[prefs.font]);
+  set('--display', prefs.layout === 'text' ? "'Courier Prime', 'Courier New', monospace" : prefs.font === 'clean' ? "'Instrument Serif', Georgia, serif" : FONTS[prefs.font]);
   if (prefs.font === 'clean' && !document.getElementById('sv-display')) {          // title font loads late; Georgia shows until then
     document.head.append(h('link', { id: 'sv-display', rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap' }));
   }
@@ -449,6 +449,27 @@ function rowFor(it, c, ctxNow, owner) {
       })
     : h('span', { class: 'pic ph', 'aria-hidden': 'true' }, (it.name || '?').slice(0, 1).toUpperCase());
   if (pics.length) thumb.dataset.pk = picKey;
+  if (prefs.layout === 'text') {
+    const must = it.priority === 'must' || it.priority === 'essential';
+    const plabel = (PRIORITIES.find((x) => x[0] === it.priority) || [0, it.priority])[1];
+    const price = it.price ? (it.approx ? 'around ' : '') + baht(it.price) + (it.priceMax > it.price ? '–' + baht(it.priceMax) : '') : '';
+    const rowsD = [];
+    if (it.note) rowsD.push(['Detail', it.note]);
+    rowsD.push(['Priority', plabel]);
+    if (it.tags.length) rowsD.push(['Tag', h('span', {}, it.tags.map((t) => h('span', { class: 'tagchip' }, t)))]);
+    if (it.repeat === 'item') rowsD.push(['Repeat', 'can be bought many times']);
+    const ls = it.urls.filter(isHttps);
+    if (ls.length) rowsD.push(['Links', h('span', {}, ls.map((u) => h('a', { href: u, target: '_blank', rel: 'noopener noreferrer' }, '↗ ' + linkLabel(u) + ' ')))]);
+    const st = body.querySelector('.status');
+    if (st) rowsD.push(['Buying', st.textContent.replace('Saving…', '').trim() || (S.saving[it.id] ? 'Saving…' : '')]);
+    const tb = h('div', { class: 'tbody' },
+      h('div', { class: 'line' }, h('span', { class: 'name' + (must && !it.got && !taken ? ' mark' : '') + (it.got || taken ? ' dim' : '') }, it.name),
+        h('span', { class: 'lead', 'aria-hidden': 'true' }), price ? h('span', { class: 'price' }, price) : ''),
+      pics.length ? thumb : '',
+      h('dl', { class: 'details' }, rowsD.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])),
+      sw, body.querySelector('.acts') || '');
+    return h('div', { class: 'row tx' + (owner ? ' owner' : '') }, lead, tb);
+  }
   return h('div', { class: 'row' + (owner ? ' owner' : '') }, lead, thumb, body);
 }
 const linkLabel = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return 'link'; } };
@@ -507,9 +528,10 @@ function listScreen() {
     side.push(h('p', { class: 'muted small' }, 'The owner sees "someone" on items you tick. After you tick an item you can switch it to your name (' + shownName() + '), item by item. Change that name in Account.'));
   }
   const tabs = [['all', 'All'], ...PRIORITIES, ['got', 'Got']];
-  out.push(h('nav', { class: 'tabs', 'aria-label': 'Priority' }, tabs.map(([k, label]) =>
-    h('button', { type: 'button', 'aria-pressed': String(S.tab === k), on: { click: () => { S.tab = k; render(); } } }, label))));
   const arr = itemsArr();
+  const cnt = (k) => k === 'got' ? arr.filter((i) => i.got).length : arr.filter((i) => !i.got && (k === 'all' || i.priority === k)).length;
+  out.push(h('nav', { class: 'tabs', 'aria-label': 'Priority' }, tabs.map(([k, label]) =>
+    h('button', { type: 'button', 'aria-pressed': String(S.tab === k), on: { click: () => { S.tab = k; render(); } } }, prefs.layout === 'text' ? label + ' (' + cnt(k) + ')' : label))));
   const shown = S.tab === 'got' ? arr.filter((i) => i.got) : arr.filter((i) => !i.got && (S.tab === 'all' || i.priority === S.tab));
   for (const g of groupItems({ order: shown.map((i) => i.id), items: Object.fromEntries(shown.map((i) => [i.id, i])) })) {
     out.push(h('div', { class: 'sec' }, h('span', { class: 'badge b-' + g.key }, g.title), h('span', { class: 'muted small' }, g.items.length + (g.items.length === 1 ? ' item' : ' items')), h('span', { class: 'rule' })));
