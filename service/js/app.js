@@ -6,17 +6,16 @@ import {
   signOut, deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig } from './config.js?v=20261112k';
+import { firebaseConfig } from './config.js?v=20261112l';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
-  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs
-} from './logic.js?v=20261112k';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112k';
-import { makeData } from './data.js?v=20261112k';
-import { runEffect } from './effect.js?v=20261112k';
-import { openViewer } from './viewer.js?v=20261112k';
-import { stackThumb } from './stack.js?v=20261112k';
+  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112l';
+import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112l';
+import { makeData } from './data.js?v=20261112l';
+import { runEffect } from './effect.js?v=20261112l';
+import { openViewer } from './viewer.js?v=20261112l';
+import { stackThumb } from './stack.js?v=20261112l';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -31,7 +30,7 @@ const D = makeData(db);
 // ---- state ------------------------------------------------------------------
 // screen: loading | welcome | pickname | home | list      panel: list | edit | tags | account
 const S = {
-  screen: 'loading', panel: 'list', user: null, profile: null,
+  imp: { text: '', rows: null, busy: false }, screen: 'loading', panel: 'list', user: null, profile: null,
   list: null, listId: null, ticks: [], msg: '', error: false, busy: false,
   mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, picIdx: {}, saving: {}, showAuth: false, copied: false, showLook: false, confirmFx: false, showRename: false
 };
@@ -516,6 +515,7 @@ function listScreen() {
         h('button', { 'aria-pressed': String(S.reorder), on: { click: () => { S.reorder = !S.reorder; render(); } } }, 'Reorder'),
         h('button', { on: { click: () => go('tags') } }, 'Tags')),
       h('button', { class: 'secondary', on: { click: copyLink } }, S.copied ? 'Link copied ✓' : 'Copy share link'));
+    side.push(h('button', { class: 'secondary', on: { click: () => { S.imp = { text: '', rows: null, busy: false }; go('import'); } } }, 'Import items'));
     if (!t.count) side.push(h('button', { class: 'secondary', on: { click: importOld } }, 'Import my old wishlist'));
   }
   side.push(S.showAuth && !S.user ? '' : msgBox());
@@ -632,6 +632,54 @@ function editScreen() {
     it ? h('button', { class: 'secondary danger', on: { click: () => { if (confirm('Delete this item?')) deleteItem(id); } } }, 'Delete item') : '', msgBox()];
 }
 
+// ---- import many items at once: paste text (Notes, chat), paste from Sheets, or pick a .csv / .txt file ----
+function importScreen() {
+  const I = S.imp, have = S.list.order.length, room = Math.max(0, IMPORT_MAX - have);
+  const dup = new Set(itemsArr().map((i) => i.name.trim().toLowerCase()));
+  const preview = () => {
+    I.rows = parseImport(I.text).map((r, k) => ({ ...r, use: !dup.has(r.name.toLowerCase()), dup: dup.has(r.name.toLowerCase()) }));
+    let left = room; I.rows.forEach((r) => { if (r.use) { if (left > 0) left--; else { r.use = false; r.over = true; } } });
+    S.msg = I.rows.length ? '' : 'Nothing found. Paste one item per line.'; S.error = !I.rows.length; render();
+  };
+  const ta = h('textarea', { name: 'text', rows: 8, placeholder: 'One item per line, for example:\nBlack backpack ฿2,500 https://shop.com/bag\nHeadphones around 3000\n\nOr paste cells from Google Sheets / Excel (columns: name, price, note, link, priority, tags).', on: { input: (e) => { I.text = e.target.value; } } }, I.text);
+  const file = h('input', { type: 'file', accept: '.csv,.tsv,.txt,text/csv,text/plain', 'aria-label': 'Pick a file', on: { change: (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    if (f.size > 500000) return say('That file is too big (max 500 KB).', true);
+    f.text().then((t) => { I.text = t; preview(); }).catch(() => say('Could not read that file.', true));
+  } } });
+  const out = [topBar(backBtn('list')), h('h1', {}, 'Import items'),
+    h('p', { class: 'muted' }, 'Move your list here in one go. Paste it or pick a file, check the preview, then add. Free space on this list: ' + room + ' items.'),
+    h('label', { class: 'field' }, 'Paste your list', ta),
+    h('label', { class: 'field' }, 'Or pick a file (.csv, .txt)', file),
+    h('button', { class: 'primary', type: 'button', on: { click: preview } }, 'Preview'), msgBox()];
+  if (I.rows && I.rows.length) {
+    const n = I.rows.filter((r) => r.use).length;
+    out.push(h('h2', {}, h('span', {}, 'Preview')), h('p', { class: 'warn' }, 'Untick what you do not want. Fix names and prices here. Items with the same name as one on your list are unticked.'));
+    I.rows.forEach((r) => out.push(h('div', { class: 'improw' },
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.use, 'aria-label': 'Add ' + r.name, on: { change: (e) => { r.use = e.target.checked; const c = I.rows.filter((x) => x.use).length; const b = document.getElementById('impgo'); if (b) b.textContent = 'Add ' + c + ' items'; } } })),
+      h('div', {},
+        h('input', { class: 'impname', value: r.name, maxlength: 120, 'aria-label': 'Name', on: { input: (e) => { r.name = e.target.value.slice(0, 120); } } }),
+        h('div', { class: 'impmeta' },
+          h('input', { class: 'impprice', value: r.price || '', inputmode: 'numeric', placeholder: 'price', 'aria-label': 'Price', on: { input: (e) => { r.price = Number(String(e.target.value).replace(/[^\d]/g, '')) || 0; } } }),
+          h('span', { class: 'muted small' }, [r.urls.length ? r.urls.length + ' link' + (r.urls.length > 1 ? 's' : '') : '', r.dup ? 'already on your list' : r.over ? 'list is full' : r.note ? r.note.slice(0, 40) : ''].filter(Boolean).join(' · ')))))));
+    out.push(h('label', { class: 'field' }, 'Priority for all new items',
+      h('select', { name: 'prio', on: { change: (e) => { I.prio = e.target.value; } } }, PRIORITIES.map(([k, l]) => h('option', { value: k, selected: (I.prio || 'want') === k }, l)))),
+      h('button', { class: 'primary', id: 'impgo', type: 'button', disabled: I.busy, on: { click: runImport } }, 'Add ' + n + ' items'));
+  }
+  return out;
+}
+async function runImport() {
+  const I = S.imp, rows = I.rows.filter((r) => r.use && r.name.trim());
+  if (!rows.length) return say('Nothing ticked.', true);
+  I.busy = true;
+  try {
+    const prio = I.prio || 'want';
+    const items = rows.map((r) => ({ ...r, priority: r.priority && r.priority !== 'want' ? r.priority : prio }));
+    const n = await D.importOld(S.listId, S.list, { items }, new URL('../', location.href).href, (a, b) => { S.msg = `Adding ${a}/${b}…`; S.error = false; render(); });
+    I.busy = false; I.rows = null; I.text = ''; S.panel = 'list'; say(`Added ${n} items.`);
+  } catch (e) { I.busy = false; say(e.code ? friendlyError(e) : 'Could not add the items.', true); }
+}
+
 function tagsScreen() {
   const arr = itemsArr(), tags = allTags(arr);
   const rep = new Set(S.list.repTags || []);
@@ -689,7 +737,7 @@ function render() {
   else if (S.screen === 'pickname') content = pickNameScreen();
   else if (S.screen === 'home') content = S.panel === 'account' ? accountScreen() : homeNoList();
   else if (S.screen === 'list') {
-    content = S.panel === 'edit' && isOwner() ? editScreen() : S.panel === 'tags' && isOwner() ? tagsScreen()
+    content = S.panel === 'edit' && isOwner() ? editScreen() : S.panel === 'tags' && isOwner() ? tagsScreen() : S.panel === 'import' && isOwner() ? importScreen()
       : S.panel === 'account' && S.profile ? accountScreen() : listScreen();
   } else content = [h('p', { class: 'loading' }, 'Loading…')];
   if (!(S.screen === 'list' && S.panel === 'list')) content = [h('div', { class: 'narrow' }, content)];   // forms stay narrow on wide screens

@@ -211,3 +211,104 @@ export function sanitizePrefs(x) {
   if (x && typeof x.shown === 'string') o.shown = x.shown.replace(/[\u0000-\u001f]/g, '').trim().slice(0, 20);
   return o;
 }
+
+// ---- import from pasted text, Notes, Sheets or a CSV file -----------------------------
+// parseImport(text) -> rows in the same shape as the old wishlist items (mapOldItem turns them into real items).
+export const IMPORT_MAX = 100;
+const BULLET = /^\s*(?:[-*•·▪◦]|\d+[.)]|\[[ xX]?\])\s*/;
+const CUR = /(?:฿|thb|baht|bath|บาท)/i;
+const NUM = '(\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.\\d+)?';
+const RANGE = new RegExp('(?:(around|about|approx\\.?|~)\\s*)?' + CUR.source + '?\\s*' + NUM + '(?:\\s*(?:-|–|to)\\s*' + CUR.source + '?\\s*' + NUM + ')?\\s*' + CUR.source + '?', 'i');
+const toNum = (s) => Number(String(s || '').replace(/,/g, '')) || 0;
+
+// Finds a price in free text. A number counts only with a currency mark, or as the last thing on the line (3+ digits, no leading zero).
+function pullPrice(s) {
+  const hasCur = (m) => CUR.test(m[0]);
+  const all = [...s.matchAll(new RegExp(RANGE.source, 'gi'))];
+  let pick = all.find(hasCur);
+  if (!pick) {
+    const last = all[all.length - 1];
+    if (last && s.slice(last.index + last[0].length).trim() === '' && !/^0/.test(last[2]) && toNum(last[2]) >= 100) pick = last;
+  }
+  if (!pick) return { price: 0, priceMax: 0, approx: false, rest: s };
+  const a = toNum(pick[2]), b = toNum(pick[3]);
+  return { price: a, priceMax: b > a ? b : 0, approx: !!pick[1], rest: (s.slice(0, pick.index) + ' ' + s.slice(pick.index + pick[0].length)) };
+}
+
+function splitCsv(text, sep) {                       // quotes allowed, "" is a quote inside quotes
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+    else if (c === '"' && cell === '') q = true;
+    else if (c === sep) { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  row.push(cell); rows.push(row);
+  return rows.filter((r) => r.some((x) => x.trim()));
+}
+
+const HEAD = {
+  name: ['name', 'item', 'title', 'product'], price: ['price', 'cost', 'budget'], priceMax: ['max', 'price max', 'max price'],
+  note: ['note', 'notes', 'detail', 'details', 'description', 'comment', 'comments'], url: ['link', 'links', 'url', 'urls', 'shop', 'store'],
+  pic: ['picture', 'pictures', 'image', 'images', 'img', 'photo'], priority: ['priority'], tags: ['tag', 'tags', 'category', 'type']
+};
+const priorityOf = (s) => {
+  const t = String(s || '').trim().toLowerCase();
+  const hit = PRIORITIES.find(([k, l]) => k === t || l.toLowerCase() === t);
+  return hit ? hit[0] : t === 'need' ? 'should' : 'want';
+};
+
+function rowFromCells(cells, map) {
+  const get = (k) => (map[k] >= 0 ? String(cells[map[k]] || '').trim() : '');
+  const links = (s) => String(s).split(/[\s,]+/).filter(isHttps);
+  let p = pullPrice(get('price'));
+  const out = { name: get('name').slice(0, 120), price: p.price, priceMax: p.priceMax, approx: p.approx, urls: links(get('url')), note: get('note').slice(0, 500),
+    priority: priorityOf(get('priority')), tags: get('tags') ? get('tags').split(/[,;|]/).map((x) => x.trim()).filter(Boolean) : [], imgs: links(get('pic')) };
+  const mx = toNum(get('priceMax')); if (mx > out.price) out.priceMax = mx;
+  if (!out.price && get('price')) { const n = toNum(get('price').replace(CUR, '')); if (n) out.price = n; }
+  return out;
+}
+
+export function parseImport(text) {
+  const src = String(text || '').replace(/^﻿/, '');
+  if (!src.trim()) return [];
+  const lines = src.split(/\r?\n/).filter((l) => l.trim());
+  let grid = null;
+  if (lines.some((l) => l.includes('\t'))) grid = splitCsv(src, '\t');
+  else {
+    const first = lines[0].toLowerCase();
+    for (const sep of [',', ';']) {
+      const cells = first.split(sep).map((x) => x.trim().replace(/^"|"$/g, ''));
+      if (cells.length > 1 && cells.some((c) => HEAD.name.includes(c))) { grid = splitCsv(src, sep); break; }
+    }
+  }
+  let rows = [];
+  if (grid) {
+    const head = grid[0].map((c) => c.trim().toLowerCase());
+    const find = (k) => head.findIndex((c) => HEAD[k].includes(c));
+    const map = {}; for (const k of Object.keys(HEAD)) map[k] = find(k);
+    if (map.name >= 0) rows = grid.slice(1).map((c) => rowFromCells(c, map));
+    else rows = grid.map((c) => {                          // no header: first cell = name, then guess from what each cell looks like
+      const o = { name: String(c[0] || '').trim().slice(0, 120), price: 0, priceMax: 0, approx: false, urls: [], note: '', priority: 'want', tags: [], imgs: [] };
+      for (const x of c.slice(1).map((y) => String(y).trim()).filter(Boolean)) {
+        if (isHttps(x)) o.urls.push(x);
+        else if (!o.price && /^(?:฿|thb)?\s*[\d,]+(?:\.\d+)?\s*(?:฿|baht|thb)?$/i.test(x)) o.price = toNum(x.replace(CUR, ''));
+        else o.note = (o.note ? o.note + ' ' : '') + x;
+      }
+      return o;
+    });
+  } else {                                                  // one item per line (Notes, chat, anything typed)
+    rows = lines.map((raw) => {
+      const mark = raw.match(/^\s*\[([xX])\]/);
+      let s = raw.replace(BULLET, '').trim();
+      const urls = s.match(/https:\/\/\S+/g) || [];
+      s = s.replace(/https:\/\/\S+/g, ' ');
+      const p = pullPrice(s);
+      const name = p.rest.replace(/\s+/g, ' ').replace(/[\s\-–:|,@(]+$/, '').replace(/^[\s\-–:|,@)]+/, '').trim();
+      return { name: name.slice(0, 120), price: p.price, priceMax: p.priceMax, approx: p.approx, urls, note: '', priority: 'want', tags: [], imgs: [], got: !!mark };
+    });
+  }
+  return rows.filter((r) => r.name).slice(0, IMPORT_MAX).map((r) => ({ ...r, urls: r.urls.slice(0, 3) }));
+}

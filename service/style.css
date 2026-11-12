@@ -291,3 +291,13 @@ h4 { margin: 24px 0 0; font-size: calc(15px * var(--ts)); font-weight: 600; }
 :root[data-layout="text"] .chip:has(input:checked) svg { display: none; }
 :root[data-layout="text"] .chip:has(input:checked)::before { content: '[x] '; white-space: pre; }
 :root[data-layout="text"] .sheet, :root[data-layout="text"] .tile, :root[data-layout="text"] .card { border-radius: 0; }
+
+/* import screen */
+.improw { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 4px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.improw .check { display: flex; align-items: center; justify-content: center; min-height: 44px; }
+.improw input[type=checkbox] { width: 24px; height: 24px; }
+.improw .impname, .improw .impprice { width: 100%; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-size: calc(16px * var(--ts)); box-sizing: border-box; }
+.improw .impmeta { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+.improw .impprice { width: 7.5em; flex: none; }
+:root[data-layout="text"] .improw { border-bottom: 1px dotted var(--muted); }
+:root[data-layout="text"] .improw .impname, :root[data-layout="text"] .improw .impprice { border: 1px solid var(--ink); border-radius: 0; }

@@ -46,4 +46,21 @@ eq('itemPics legacy picUrl',itemPics({picUrl:'https://a.co/old'}).length,1);
 eq('itemPics empty',itemPics({}).length,0);
 eq('form keeps picV1',itemFromForm({name:'A',picUrls:'https://a.co/x'},{picV:1,picV1:2}).picV1,2);
 eq('form picUrls 9 lines -> check error',checkItemInput({name:'a',picUrls:Array.from({length:9},(_,i)=>'https://a.co/'+i).join('\n')})!=='',true);
+import { parseImport } from './logic.mjs';
+{
+const a=parseImport('- Aulumu G03 around ฿1,700 https://a.co/x\n2. Nike mind 001\n[x] Body cam 680\niPhone 15\nHeadphones 3000-3700 baht');
+eq('import lines: price+link',[a[0].name,a[0].price,a[0].approx,a[0].urls[0]],['Aulumu G03',1700,true,'https://a.co/x']);
+eq('import: leading-zero number is part of name',[a[1].name,a[1].price],['Nike mind 001',0]);
+eq('import: [x] means got',[a[2].name,a[2].price,a[2].got],['Body cam',680,true]);
+eq('import: short number stays in name',[a[3].name,a[3].price],['iPhone 15',0]);
+eq('import: range with baht',[a[4].name,a[4].price,a[4].priceMax],['Headphones',3000,3700]);
+const t=parseImport('Name\tPrice\tNote\tLink\tPriority\tTags\nBag\t฿2,500\t"black, 22L"\thttps://b.co\tMust have\tbag, sling\nCap\t300\t\t\tsomeday\t');
+eq('import tsv with header',[t[0].name,t[0].price,t[0].note,t[0].urls[0],t[0].priority,t[0].tags],['Bag',2500,'black, 22L','https://b.co','must',['bag','sling']]);
+eq('import tsv row 2',[t[1].name,t[1].price,t[1].priority],['Cap',300,'someday']);
+const c=parseImport('name,price,link\n"Shoe, red",1200,https://s.co\nSock,80,');
+eq('import csv quotes',[c[0].name,c[0].price,c[0].urls.length,c[1].name],['Shoe, red',1200,1,'Sock']);
+eq('import empty',parseImport('  \n '),[]);
+eq('import cap 100',parseImport(Array.from({length:150},(_,i)=>'item '+i).join('\n')).length,100);
+eq('import no header table',(()=>{const r=parseImport('Cup\t250\tblue\nPlate\thttps://p.co');return [r[0].price,r[0].note,r[1].urls.length]})(),[250,'blue',1]);
+}
 console.log('UNIT',p,'pass',f,'fail');
