@@ -1,6 +1,6 @@
 // Pure helpers. No Firebase here, so they can be tested in plain Node.
 
-export const NAME_RE = /^[a-z0-9_]{3,20}$/;
+const NAME_RE = /^[a-z0-9_]{3,20}$/;
 export const PRIORITIES = [
   ['must', 'Must have'],
   ['should', 'Need this'],
@@ -91,16 +91,15 @@ export function parseTags(text) {
   }
   return out.slice(0, 5);
 }
-// One link per line, https only, max 3.
-export function parseUrls(text) {
-  return String(text || '').split(/\s*\n\s*/).map((s) => s.trim()).filter(isHttps).map((s) => s.slice(0, 450)).slice(0, 3);
+// One link per line, https only, cut to 450 characters each. One shared parser; the two lists differ only in the limit.
+function parseLinks(text, max) {
+  return String(text || '').split(/\s*\n\s*/).map((s) => s.trim()).filter(isHttps).map((s) => s.slice(0, 450)).slice(0, max);
 }
+export const parseUrls = (text) => parseLinks(text, 3);                  // shop links, max 3
 
-// Picture links: one per line, https only, max 8 (they cost no storage; the pictures stay on the other site).
-export const MAX_PIC_LINKS = 8;
-export function parsePicUrls(text) {
-  return String(text || '').split(/\s*\n\s*/).map((s) => s.trim()).filter(isHttps).map((s) => s.slice(0, 450)).slice(0, MAX_PIC_LINKS);
-}
+// Picture links: max 8 (they cost no storage; the pictures stay on the other site).
+const MAX_PIC_LINKS = 8;
+export const parsePicUrls = (text) => parseLinks(text, MAX_PIC_LINKS);
 // Every picture of an item, in show order: up to 2 uploaded ones (slot 0, 1), then the links.
 // Old items kept one link in picUrl; it still counts when picUrls is empty.
 export function itemPics(it) {
@@ -180,7 +179,7 @@ export function mapOldItem(old, baseUrl) {
 
 // ---- appearance (device-only preferences) ------------------------------------
 // 8 curated color themes: main color + small touch + extra. Contrast checked (text 4.5:1, marks 3:1) in light and dark.
-export const THEMES = {
+const THEMES = {
   Rose: {light: {accent: '#D6336C', accentInk: '#BF2958', onAccent: '#FFFFFF', soft: '#F7E0E5', touch: '#AF7D2B', touchSoft: '#F2E9DE', extra: '#8C49A2', extraSoft: '#EFDCF0'}, dark: {accent: '#EE6A96', accentInk: '#EE6A96', onAccent: '#1A1416', soft: '#3E222C', touch: '#E0B060', touchSoft: '#3B3021', extra: '#B969D3', extraSoft: '#301736'}},
   Clay: {light: {accent: '#BF5630', accentInk: '#AB4C2A', onAccent: '#FFFFFF', soft: '#F4E5DE', touch: '#2E8C86', touchSoft: '#E2EBE9', extra: '#7B6737', extraSoft: '#F4EBDB'}, dark: {accent: '#E58A66', accentInk: '#E58A66', onAccent: '#1A1416', soft: '#3C2822', touch: '#63BDB4', touchSoft: '#223332', extra: '#C69C39', extraSoft: '#372C18'}},
   Honey: {light: {accent: '#A8650F', accentInk: '#945B0F', onAccent: '#FFFFFF', soft: '#F1E6DA', touch: '#6F8234', touchSoft: '#EAEADF', extra: '#3F6C8D', extraSoft: '#DFE9F0'}, dark: {accent: '#E0A44C', accentInk: '#E0A44C', onAccent: '#1A1416', soft: '#3B2E1D', touch: '#A9BB6A', touchSoft: '#303223', extra: '#4994CA', extraSoft: '#192936'}},

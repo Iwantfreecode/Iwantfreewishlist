@@ -6,17 +6,17 @@ import {
   signOut, deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig } from './config.js?v=20261112j';
+import { firebaseConfig } from './config.js?v=20261112k';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
   DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs
-} from './logic.js?v=20261112j';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112j';
-import { makeData } from './data.js?v=20261112j';
-import { runEffect } from './effect.js?v=20261112j';
-import { openViewer } from './viewer.js?v=20261112j';
-import { stackThumb } from './stack.js?v=20261112j';
+} from './logic.js?v=20261112k';
+import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112k';
+import { makeData } from './data.js?v=20261112k';
+import { runEffect } from './effect.js?v=20261112k';
+import { openViewer } from './viewer.js?v=20261112k';
+import { stackThumb } from './stack.js?v=20261112k';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -494,11 +494,6 @@ function picSrc(it, p) {
     try { localStorage.setItem('sv_pic_' + key, d); } catch (e) { /* storage full: fine */ }
     return d;
   });
-}
-function picEl(it, p) {
-  const img = h('img', { class: 'pic', alt: '', loading: 'lazy', referrerpolicy: 'no-referrer', width: 72, height: 72 });
-  picSrc(it, p).then((src) => { if (src) img.src = src; }).catch(() => {});
-  return img;
 }
 function showPics(it, start, onClose) { openViewer(itemPics(it).map((p) => ({ load: () => picSrc(it, p) })), start, it.name + ' pictures', onClose); }
 
