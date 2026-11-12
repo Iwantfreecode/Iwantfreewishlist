@@ -3,19 +3,20 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/fireba
 import {
   getAuth, connectAuthEmulator, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup,
   EmailAuthProvider, reauthenticateWithCredential, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, deleteUser
+  signOut, deleteUser, signInAnonymously, updateProfile
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig } from './config.js?v=20261112m';
+import { firebaseConfig, GUESTS_ENABLED } from './config.js?v=20261112s';
+import { getRate } from './rates.js?v=20261112s';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
-  groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
-  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112m';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112m';
-import { makeData } from './data.js?v=20261112m';
-import { runEffect } from './effect.js?v=20261112m';
-import { openViewer } from './viewer.js?v=20261112m';
-import { stackThumb } from './stack.js?v=20261112m';
+  groupItems, totalToGet, CURRENCIES, money, convertedRange, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
+  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112s';
+import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112s';
+import { makeData } from './data.js?v=20261112s';
+import { runEffect } from './effect.js?v=20261112s';
+import { openViewer } from './viewer.js?v=20261112s';
+import { stackThumb } from './stack.js?v=20261112s';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -62,14 +63,20 @@ function setPrefs(change) {
   prefs = sanitizePrefs({ ...prefs, ...change });
   try { localStorage.setItem('sv_prefs', JSON.stringify(prefs)); } catch (e) { /* ignore */ }
   applyPrefs(); render();
-  if (S.user && S.profile) D.savePrefs(S.user.uid, prefs).catch(() => {});      // saved to the account too (quietly; the device copy still works)
+  if (S.user && S.profile && !isGuest()) D.savePrefs(S.user.uid, prefs).catch(() => {});      // saved to the account too (quietly; the device copy still works)
 }
 darkMq.addEventListener('change', () => { applyPrefs(); });
 const params = new URLSearchParams(location.search);
 const sharedId = params.get('l');
+try { S.cur = localStorage.getItem('sv_cur') || ''; } catch (e) { S.cur = ''; }
 const isOwner = () => !!(S.user && S.list && S.list.ownerUid === S.user.uid);
 const isGoogle = () => !!(S.user && S.user.providerData.some((p) => p.providerId === 'google.com'));
-const shownName = () => (prefs.shown || (S.profile && S.profile.name) || '');
+const isGuest = () => !!(S.user && S.user.isAnonymous);
+// Guests have no profile document. Their typed name lives on the sign-in itself (displayName).
+const guestProfile = (user) => ({ name: (user.displayName || 'guest').slice(0, 20), guest: true, l0: '', l1: '', l2: '', prefs: {} });
+// The guest door shows only on a shared list whose owner switched guests on.
+const guestsOpen = () => GUESTS_ENABLED && !!sharedId && !!S.list && S.list.allowGuests === true && !S.user;
+const shownName = () => (isGuest() ? (S.profile && S.profile.name) : prefs.shown || (S.profile && S.profile.name)) || '';
 // Items I chose to sign with my name before ticking them (kept on this device, per list).
 
 // ---- tiny DOM helper: text only, never innerHTML (names come from other people) ----
@@ -100,7 +107,7 @@ const ctx = () => ({ items: itemsArr(), repTags: S.list.repTags || [], joints: S
 function claims() {
   const c = {};
   for (const t of S.ticks) for (const id of t.items || []) {
-    if (!c[id]) c[id] = { by: t.uid, name: t.name, named: !!t.named, all: [] };
+    if (!c[id]) c[id] = { by: t.uid, name: t.name, named: !!t.named, guest: !!t.guest, all: [] };
     c[id].all.push(t.uid);
   }
   return c;
@@ -113,7 +120,9 @@ const myTicks = (named) => {
 // ---- loading ------------------------------------------------------------------
 async function openList(id) {
   S.list = await D.getList(id); S.listId = S.list ? id : null; S.ticks = [];
+  S.rate = null; S.rateErr = false;
   if (S.list && S.user && S.profile) { try { S.ticks = await D.loadTicks(id, isOwner()); } catch (e) { S.msg = friendlyError(e); S.error = true; } }
+  if (S.list) loadRate();
 }
 // Decide which screen to show. The newest call wins, so a slow older one cannot overwrite it.
 let routeSeq = 0;
@@ -122,8 +131,9 @@ async function route(user) {
   const next = { user, profile: null, screen: 'loading', msg: '', error: false };
   try {
     if (user) next.profile = await D.getProfile(user.uid);
+    if (user && !next.profile && user.isAnonymous) next.profile = guestProfile(user);
     if (mine !== routeSeq) return;
-    if (next.profile) {      // the account's look wins; a new account starts with the defaults
+    if (next.profile && !next.profile.guest) {      // the account's look wins; a new account starts with the defaults
       const p = next.profile.prefs;
       prefs = sanitizePrefs(p && Object.keys(p).length ? p : null);
       try { localStorage.setItem('sv_prefs', JSON.stringify(prefs)); } catch (e) { /* ignore */ }
@@ -148,6 +158,17 @@ onAuthStateChanged(auth, (user) => { route(user); });
 
 // ---- auth actions ---------------------------------------------------------------
 async function googleSignIn() { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { say(friendlyError(e), true); } }
+async function guestAuth(form) {
+  const name = form.gname.value.trim().replace(/\s+/g, ' ');
+  if (!name || name.length > 20) return say('Type a name, 1 to 20 characters.', true);
+  S.busy = true;
+  try {
+    const cred = await signInAnonymously(auth);
+    await updateProfile(cred.user, { displayName: name });
+    await route(auth.currentUser);
+  } catch (e) { S.busy = false; return say(friendlyError(e), true); }
+  S.busy = false;
+}
 async function passwordAuth(form) {
   const name = cleanName(form.name.value), pass = form.pass.value;
   if (!validName(name)) return say('Name: 3 to 20 letters, digits or _ (no spaces).', true);
@@ -263,7 +284,7 @@ async function copyLink() {
 // ---- ticking --------------------------------------------------------------------
 // My two tick docs, rebuilt from lists of item ids. Used to show a tick at once, before the network answers.
 const withMine = (ticks, open, named) => {
-  const mk = (items, flag) => items.length ? [{ uid: S.user.uid, name: flag ? shownName() : '', named: flag, v: 2, items }] : [];
+  const mk = (items, flag) => items.length ? [{ uid: S.user.uid, name: flag ? shownName() : '', named: flag, v: 2, guest: isGuest(), items }] : [];
   return [...ticks.filter((t) => t.uid !== S.user.uid), ...mk(open, false), ...mk(named, true)];
 };
 let tickQueue = Promise.resolve();
@@ -340,6 +361,20 @@ async function deleteAccount(form) {
   } catch (e) { say(friendlyError(e), true); }
 }
 
+// A guest leaves: ticks are removed first, then the guest sign-in. (A guest cannot sign in again to the same account later.)
+async function leaveGuest() {
+  try { await D.deleteMyTicks(S.user); } catch (e) { return say(friendlyError(e), true); }
+  try { await deleteUser(S.user); } catch (e) { await signOut(auth); }   // too old to delete: just sign out
+  location.href = location.pathname + location.search;
+}
+async function removeClaim(item) {
+  try { await D.clearClaims(S.listId, item.id); S.ticks = await D.loadTicks(S.listId, true); S.clearClaim = null; say('The claim on "' + item.name + '" was removed.'); }
+  catch (e) { S.clearClaim = null; say(friendlyError(e), true); }
+}
+async function toggleGuests() {
+  try { await D.saveGuests(S.listId, S.list, !S.list.allowGuests); render(); } catch (e) { say(friendlyError(e), true); }
+}
+
 // ---- pieces -----------------------------------------------------------------------
 const lookBtn = () => h('button', { class: 'link', on: { click: () => { S.showLook = true; render(); } } }, 'Appearance');
 // Logo: a small list card (a ticked line, two open lines) with a heart. Drawn in the accent color.
@@ -362,8 +397,16 @@ const backBtn = (to) => h('button', { class: 'link', on: { click: () => go(to ||
 
 function authBlock() {
   const signup = S.mode === 'signup';
+  const guest = guestsOpen() ? [
+    h('form', { class: 'guestform', on: { submit: (e) => { e.preventDefault(); guestAuth(e.target); } } },
+      h('h2', {}, h('span', {}, 'Just tick an item')),
+      field('Your name (the owner can see it if you choose)', 'gname', { maxlength: 20, required: true, autocomplete: 'nickname' }),
+      h('button', { class: 'primary', type: 'submit', disabled: S.busy }, 'Continue as guest'),
+      h('p', { class: 'warn' }, 'No password. If you clear your browser data, you cannot untick later.')),
+    h('hr'), h('p', { class: 'muted' }, 'Or sign in:')] : [];
   return [
-    h('button', { class: 'primary', on: { click: googleSignIn } }, 'Continue with Google'),
+    ...guest,
+    h('button', { class: guest.length ? 'secondary' : 'primary', on: { click: googleSignIn } }, 'Continue with Google'),
     h('p', { class: 'warn' }, 'Google is needed to own a list. Friends can use a name + password.'),
     h('hr'),
     h('form', { on: { submit: (e) => { e.preventDefault(); passwordAuth(e.target); } } },
@@ -390,6 +433,9 @@ function pickNameScreen() {
       h('button', { class: 'primary', type: 'submit' }, 'Save name')), msgBox()];
 }
 function homeNoList() {
+  if (isGuest()) return [topBar(), h('h1', {}, 'Hi ' + S.profile.name),
+    h('p', { class: 'muted' }, 'You are a guest. Open the link your friend sent to tick items on their list.'),
+    h('hr'), h('button', { class: 'link', on: { click: () => go('account') } }, 'Account'), msgBox()];
   const out = [topBar(signOutBtn()), h('h1', {}, 'Hi ' + S.profile.name)];
   if (isGoogle()) out.push(h('p', { class: 'muted' }, 'You do not have a list yet.'), h('button', { class: 'primary', on: { click: createMyList } }, 'Create my list'));
   else out.push(h('p', { class: 'muted' }, 'Name + password accounts can tick items on a friend’s list. Open the link your friend sent. To own a list, sign in with Google.'));
@@ -403,7 +449,8 @@ function rowFor(it, c, ctxNow, owner) {
   const taken = !!claim && !mine && it.repeat !== 'item';
   let lead;
   if (owner) {
-    lead = h('span', { class: 'tick', 'aria-hidden': 'true' }, h('span', { class: claim ? 'on-other' : '' }));
+    lead = claim ? h('button', { class: 'tick', 'aria-label': 'Remove the claim on ' + it.name, on: { click: () => { S.clearClaim = it; S.msg = ''; render(); } } }, h('span', { class: 'on-other' }))
+      : h('span', { class: 'tick', 'aria-hidden': 'true' }, h('span', {}));
   } else if (!S.user || !S.profile) {
     lead = h('button', { class: 'tick', 'aria-label': 'Sign in to tick ' + it.name, on: { click: () => { S.msg = ''; S.showAuth = true; render(); } } }, h('span'));
   } else if (taken) {
@@ -419,7 +466,7 @@ function rowFor(it, c, ctxNow, owner) {
   if (S.saving[it.id] && !owner) status = h('div', { class: 'status saving', role: 'status' }, h('span', { class: 'spin', 'aria-hidden': 'true' }), 'Saving…');
   else if (mine) status = h('div', { class: 'status mine' }, 'You are buying this');
   else if (claim && !owner && it.repeat !== 'item') status = h('div', { class: 'status' }, 'Someone is buying this');
-  else if (owner && claim) status = h('div', { class: 'status mine' }, claim.named && claim.name ? claim.name + ' is buying this' : 'Someone is buying this');
+  else if (owner && claim) status = h('div', { class: 'status mine' }, claim.named && claim.name ? claim.name + (claim.guest ? ' (guest)' : '') + ' is buying this' : 'Someone is buying this');
   const named = mine && myTicks(true).includes(it.id);
   const sw = mine ? h('div', { class: 'ownersees' }, h('span', {}, 'Owner sees'),
     h('span', { class: 'seg2', role: 'group', 'aria-label': 'What the owner sees' },
@@ -428,7 +475,7 @@ function rowFor(it, c, ctxNow, owner) {
   const note = !owner && S.user && S.profile && !taken && !mine ? smallNote(it, ctxNow, c) : null;
   const body = h('div', { class: 'body' },
     h('div', { class: 'name' + (it.got || taken ? ' dim' : '') }, it.name),
-    h('div', { class: 'price' }, priceText(it), meta.length ? h('span', { class: 'meta' }, ' · ' + meta.join(' · ')) : ''),
+    h('div', { class: 'price' }, priceLabel(it, '~'), meta.length ? h('span', { class: 'meta' }, ' · ' + meta.join(' · ')) : ''),
     it.note ? h('div', { class: 'note' }, it.note) : '',
     status, sw,
     it.urls.filter(isHttps).length ? h('div', { class: 'meta links' }, it.urls.filter(isHttps).map((u) => h('a', { href: u, target: '_blank', rel: 'noopener noreferrer' }, '↗ ' + linkLabel(u) + ' '))) : '',
@@ -451,7 +498,7 @@ function rowFor(it, c, ctxNow, owner) {
   if (prefs.layout === 'text') {
     const must = it.priority === 'must' || it.priority === 'essential';
     const plabel = (PRIORITIES.find((x) => x[0] === it.priority) || [0, it.priority])[1];
-    const price = it.price ? (it.approx ? 'around ' : '') + baht(it.price) + (it.priceMax > it.price ? '–' + baht(it.priceMax) : '') : '';
+    const price = priceLabel(it, 'around ');
     const rowsD = [];
     if (it.note) rowsD.push(['Detail', it.note]);
     rowsD.push(['Priority', plabel]);
@@ -472,7 +519,49 @@ function rowFor(it, c, ctxNow, owner) {
   return h('div', { class: 'row' + (owner ? ' owner' : '') }, lead, thumb, body);
 }
 const linkLabel = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return 'link'; } };
-const priceText = (it) => !it.price ? '' : (it.approx ? '~' : '') + baht(it.price) + (it.priceMax > it.price ? '–' + baht(it.priceMax) : '');
+// ---- money: the list has one currency (set by the owner). A friend may view prices in another one: shown as a rough range. ----
+const listCur = () => (S.list && S.list.currency) || 'THB';
+const viewCur = () => (isOwner() || !CURRENCIES[S.cur] ? listCur() : S.cur);
+const converting = () => !!S.rate && S.rate.from === listCur() && S.rate.to === viewCur() && viewCur() !== listCur();
+function priceLabel(it, around) {
+  if (!it.price) return '';
+  const lc = listCur(), own = money(it.price, lc) + (it.priceMax > it.price ? '–' + money(it.priceMax, lc) : '');
+  if (!converting()) return (it.approx ? around : '') + own;
+  return 'around ' + convertedRange(it.price, it.priceMax, S.rate.rate, viewCur()) + ' (' + own + ')';
+}
+function loadRate() {
+  const from = listCur(), to = viewCur();
+  S.rate = null; S.rateErr = false;
+  if (isOwner() || from === to) return;
+  getRate(from, to).then((r) => { if (listCur() === from && viewCur() === to) { S.rate = { ...r, from, to }; render(); } })
+    .catch(() => { if (listCur() === from && viewCur() === to) { S.rateErr = true; render(); } });
+}
+function setCur(code) {
+  S.cur = code; try { localStorage.setItem('sv_cur', code); } catch (e) { /* ignore */ }
+  loadRate(); render();
+}
+// A friend's budget (in the shown currency). Items with no price always stay. Without a rate we cannot compare, so nothing is hidden.
+function underBudget(it) {
+  const b = Number(S.budget);
+  if (isOwner() || !(b > 0) || !it.price) return true;
+  const rate = viewCur() === listCur() ? 1 : converting() ? S.rate.rate : 0;
+  return !rate || it.price * rate <= b;
+}
+function moneyBox() {
+  const lc = listCur(), vc = viewCur();
+  const sel = h('select', { name: 'cur', 'aria-label': 'Show prices in', on: { change: (e) => setCur(e.target.value) } },
+    Object.keys(CURRENCIES).map((c) => h('option', { value: c, selected: c === vc }, c + (c === lc ? ' (list currency)' : ''))));
+  const out = [h('label', { class: 'field' }, 'Show prices in', sel)];
+  if (vc !== lc) {
+    out.push(h('p', { class: 'warn', role: 'note' }, converting()
+      ? 'Prices on this list are in ' + lc + ' (set by the owner). Converted prices are rough guesses, about 5% either way, from an exchange rate' + (S.rate.date ? ' of ' + S.rate.date : '') + '. The shop’s real price will be different. Check the shop before you buy.'
+      : S.rateErr ? 'Could not get the exchange rate. Showing the owner’s prices in ' + lc + '.' : 'Getting the exchange rate…'));
+  }
+  out.push(h('label', { class: 'field' }, 'Budget, optional (' + vc + ')',
+    h('input', { name: 'budget', type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: S.budget || '', placeholder: 'Show items up to…',
+      on: { change: (e) => { S.budget = e.target.value; render(); } } })));
+  return h('div', { class: 'moneybox' }, out);
+}
 
 // Small note: some (not all) of this item's tags are already picked.
 function smallNote(it, ctxNow, c) {
@@ -501,11 +590,11 @@ function listScreen() {
   const out = [], side = [];
   if (!S.list) return [topBar(S.user ? signOutBtn() : signInBtn()), h('h1', {}, 'List not found'), h('p', { class: 'muted' }, 'Check the link.'), msgBox()];
   const right = S.user
-    ? h('span', {}, h('button', { class: 'link', on: { click: () => go('account') } }, 'Account'), signOutBtn())
+    ? h('span', {}, h('button', { class: 'link', on: { click: () => go('account') } }, 'Account'), isGuest() ? '' : signOutBtn())
     : signInBtn();
   const t = totalToGet(S.list), cNow = claims(), cx = ctx();
   const pct = t.count ? Math.round(100 * t.got / t.count) : 0;
-  side.push(h('h1', {}, S.list.title), owner ? h('button', { class: 'link', on: { click: () => { S.showRename = true; render(); } } }, 'Rename list') : '',
+  side.push(h('h1', {}, S.list.title), owner ? h('button', { class: 'link', on: { click: () => { S.showRename = true; render(); } } }, 'Rename list') : h('p', { class: 'muted friendline' }, 'List by ' + (S.list.ownerName || 'someone') + '. Tick what you are buying, so nobody buys it twice.'),
     h('div', { class: 'stat' }, h('span', { class: 'big' }, `${t.got} of ${t.count}`), h('span', { class: 'muted small' }, ' items got')),
     h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': t.count, 'aria-valuenow': t.got },
       h('div', { style: 'width:' + pct + '%' }), h('i', { style: 'left:calc((100% - 10px) * ' + (pct / 100) + ')' })));
@@ -515,24 +604,34 @@ function listScreen() {
         h('button', { 'aria-pressed': String(S.reorder), on: { click: () => { S.reorder = !S.reorder; render(); } } }, 'Reorder'),
         h('button', { on: { click: () => go('tags') } }, 'Tags')),
       h('button', { class: 'secondary', on: { click: copyLink } }, S.copied ? 'Link copied ✓' : 'Copy share link'));
+    side.push(h('label', { class: 'field' }, 'List currency (prices are typed in this)',
+      h('select', { name: 'listcur', on: { change: (e) => D.saveCurrency(S.listId, S.list, e.target.value).then(render, (er) => say(friendlyError(er), true)) } },
+        Object.keys(CURRENCIES).map((c) => h('option', { value: c, selected: c === listCur() }, c)))));
+    if (GUESTS_ENABLED) side.push(h('button', { class: 'secondary', 'aria-pressed': String(S.list.allowGuests === true), on: { click: toggleGuests } },
+      'Guests can tick without an account: ' + (S.list.allowGuests === true ? 'ON' : 'OFF')));
     side.push(h('button', { class: 'secondary', on: { click: () => { S.imp = { text: '', rows: null, busy: false }; go('import'); } } }, 'Import items'));
     if (!t.count) side.push(h('button', { class: 'secondary', on: { click: importOld } }, 'Import my old wishlist'));
   }
   side.push(S.showAuth && !S.user ? '' : msgBox());
+  if (!owner && S.list.items && S.list.order.length) side.push(moneyBox());
   if (!owner && S.user && S.profile) {
-    side.push(h('p', { class: 'muted small' }, 'The owner sees "someone" on items you tick. After you tick an item you can switch it to your name (' + shownName() + '), item by item. Change that name in Account.'));
+    side.push(h('p', { class: 'muted small' }, isGuest()
+      ? 'You are a guest. The owner sees "someone" on items you tick. After you tick an item you can switch it to your name (' + shownName() + ', marked as guest), item by item. To leave and remove your ticks, use Account.'
+      : 'The owner sees "someone" on items you tick. After you tick an item you can switch it to your name (' + shownName() + '), item by item. Change that name in Account.'));
   }
   const tabs = [['all', 'All'], ...PRIORITIES, ['got', 'Got']];
   const arr = itemsArr();
   const cnt = (k) => k === 'got' ? arr.filter((i) => i.got).length : arr.filter((i) => !i.got && (k === 'all' || i.priority === k)).length;
   out.push(h('nav', { class: 'tabs', 'aria-label': 'Priority' }, tabs.map(([k, label]) =>
     h('button', { type: 'button', 'aria-pressed': String(S.tab === k), on: { click: () => { S.tab = k; render(); } } }, prefs.layout === 'text' ? label + ' (' + cnt(k) + ')' : label))));
-  const shown = S.tab === 'got' ? arr.filter((i) => i.got) : arr.filter((i) => !i.got && (S.tab === 'all' || i.priority === S.tab));
+  const inTab = S.tab === 'got' ? arr.filter((i) => i.got) : arr.filter((i) => !i.got && (S.tab === 'all' || i.priority === S.tab));
+  const shown = inTab.filter(underBudget), hidden = inTab.length - shown.length;
   for (const g of groupItems({ order: shown.map((i) => i.id), items: Object.fromEntries(shown.map((i) => [i.id, i])) })) {
     out.push(h('div', { class: 'sec' }, h('span', { class: 'badge b-' + g.key }, g.title), h('span', { class: 'muted small' }, g.items.length + (g.items.length === 1 ? ' item' : ' items')), h('span', { class: 'rule' })));
     g.items.forEach((it) => out.push(rowFor(it, cNow, cx, owner)));
   }
-  if (!shown.length) out.push(h('p', { class: 'muted' }, owner ? 'Nothing here. Add an item above.' : 'Nothing here.'));
+  if (hidden) out.push(h('p', { class: 'muted' }, hidden + (hidden === 1 ? ' item is' : ' items are') + ' over your budget and hidden. ', h('button', { class: 'link', on: { click: () => { S.budget = ''; render(); } } }, 'Show all')));
+  if (!shown.length && !hidden) out.push(h('p', { class: 'muted' }, owner ? 'Nothing here. Add an item above.' : 'Nothing here.'));
   return [topBar(right), h('div', { class: 'cols' }, h('aside', {}, side), h('div', { class: 'main' }, out))];
 }
 
@@ -575,6 +674,25 @@ function renameDialog() {
         h('button', { class: 'primary', type: 'submit' }, 'Save'),
         h('button', { class: 'secondary', type: 'button', on: { click: () => { S.showRename = false; render(); } } }, 'Cancel'))));
 }
+// Big warning before the owner removes someone's claim. The button stays off until the box is ticked.
+function clearClaimDialog() {
+  if (!S.clearClaim) return '';
+  const it = S.clearClaim;
+  const yes = h('button', { class: 'secondary danger', disabled: true, on: { click: () => removeClaim(it) } }, 'Remove the claim');
+  const box = h('input', { type: 'checkbox', name: 'sure', on: { change: (e) => { yes.disabled = !e.target.checked; } } });
+  return h('div', { class: 'overlay', role: 'alertdialog', 'aria-label': 'Remove a claim' },
+    h('div', { class: 'dialog big' },
+      h('h1', {}, 'Warning'),
+      h('p', { class: 'bigtext' }, 'You are about to remove the claim on "' + it.name + '".'),
+      h('ul', { class: 'bigtext' },
+        h('li', {}, 'Nobody is told. The friend who ticked it will not know.'),
+        h('li', {}, 'The item shows as free again. Someone else can pick it.'),
+        h('li', {}, 'The first friend may still buy it. You may get the same gift twice.')),
+      h('p', { class: 'bigtext' }, 'Only do this if you are sure the gift will not be bought.'),
+      h('label', { class: 'check' }, box, ' I understand'),
+      yes,
+      h('button', { class: 'primary', on: { click: () => { S.clearClaim = null; render(); } } }, 'Keep it')));
+}
 function fxConfirm() {
   if (!S.confirmFx) return '';
   const close = () => { S.confirmFx = false; render(); };
@@ -612,15 +730,15 @@ function editScreen() {
   const id = S.editId, it = id ? S.list.items[id] : null;
   const form = h('form', { on: { submit: (e) => { e.preventDefault(); saveItemForm(e.target, id); } } },
     field('Name', 'name', { required: true, maxlength: 120, value: it ? it.name : '' }),
-    field('Price (฿)', 'price', { type: 'number', inputmode: 'decimal', step: 'any', min: 0, value: it && it.price ? it.price : '' }),
+    field('Price (' + (CURRENCIES[listCur()] || listCur() + ' ').trim() + ')', 'price', { type: 'number', inputmode: 'decimal', step: 'any', min: 0, value: it && it.price ? it.price : '' }),
     field('Highest price (optional)', 'priceMax', { type: 'number', inputmode: 'decimal', step: 'any', min: 0, value: it && it.priceMax ? it.priceMax : '' }),
     check('Price is about (~)', 'approx', it && it.approx),
     h('label', { class: 'field' }, 'Priority',
       h('select', { name: 'priority' }, PRIORITIES.map(([k, label]) => h('option', { value: k, selected: (it ? it.priority : 'want') === k }, label)))),
     field('Tags (comma, max 5)', 'tags', { value: it ? it.tags.join(', ') : '' }),
     textarea('Note', 'note', it ? it.note : '', 2),
-    textarea('Links (one per line, https, max 3)', 'urls', it ? it.urls.join('\n') : '', 3),
-    textarea('Picture links (one per line, https, max 8)', 'picUrls', it ? picLinksOf(it).join('\n') : '', 3),
+    textarea('Links (one per line, must start with https://, max 3)', 'urls', it ? it.urls.join('\n') : '', 3),
+    textarea('Picture links (one per line, must start with https://, max 8)', 'picUrls', it ? picLinksOf(it).join('\n') : '', 3),
     h('label', { class: 'field' }, 'Upload picture 1 (small)', h('input', { type: 'file', name: 'pic', accept: 'image/*' })),
     it && it.picV ? check('Remove uploaded picture 1', 'removePic', false) : '',
     h('label', { class: 'field' }, 'Upload picture 2 (small)', h('input', { type: 'file', name: 'pic2', accept: 'image/*' })),
@@ -691,7 +809,7 @@ function tagsScreen() {
   const repForm = h('form', { on: { submit: (e) => { e.preventDefault();
     const keys = [...e.target.querySelectorAll('input[name=rep]:checked')].map((x) => x.value);
     saveTags(keys, S.list.joints || []); } } },
-    h('h3', {}, 'Repeatable tags'), h('p', { class: 'muted' }, 'Items with these tags can be bought many times. They never warn.'),
+    h('h3', {}, 'Tags you can buy again and again'), h('p', { class: 'muted' }, 'Items with these tags can be bought many times. They never warn.'),
     tags.length ? h('div', { class: 'chips' }, repBoxes) : h('p', { class: 'muted' }, 'No tags yet.'),
     h('button', { class: 'primary', type: 'submit' }, 'Save repeatable tags'));
   const jointRows = joints.map((j, n) => h('div', { class: 'row-sm' }, h('span', {}, h('b', {}, j.name), h('span', { class: 'muted' }, ' = ' + j.tags.join(' + '))),
@@ -700,22 +818,29 @@ function tagsScreen() {
     const name = e.target.jname.value.trim().slice(0, 30);
     const picked = [...e.target.querySelectorAll('input[name=jt]:checked')].map((x) => x.value);
     if (!name || picked.length < 2) return say('Give it a name and pick at least 2 tags.', true);
-    if (joints.length >= 20) return say('Max 20 joint tags.', true);
+    if (joints.length >= 20) return say('You can make up to 20 combined tags.', true);
     saveTags([...rep], [...joints, { name, tags: picked }]); } } },
-    h('h3', {}, 'Joint tags'),
-    h('p', { class: 'muted' }, 'A joint tag is a hidden tag for items that have all of its tags. Friends never see it. It only decides which items count as the same kind.'),
+    h('h3', {}, 'Combined tags'),
+    h('p', { class: 'muted' }, 'A combined tag is a hidden tag for items that have all of its tags. Friends never see it. It only decides which items count as the same kind.'),
     jointRows.length ? h('div', { class: 'jointlist' }, jointRows) : '',
-    h('h4', {}, 'New joint tag'),
+    h('h4', {}, 'New combined tag'),
     field('Name', 'jname', { maxlength: 30, placeholder: 'e.g. big bag' }),
     h('p', { class: 'warn' }, 'Pick 2 or more tags'),
     h('div', { class: 'chips' }, tags.map((t) => { const lab = chip(t.label, 'jt', false); lab.firstChild.value = t.label; return lab; })),
-    h('button', { class: 'primary', type: 'submit' }, 'Add joint tag'));
+    h('button', { class: 'primary', type: 'submit' }, 'Add combined tag'));
   return [topBar(backBtn()), h('h1', {}, 'Tags'),
     h('p', { class: 'muted' }, 'Tags warn your friends when two items are the same kind, so nobody buys both.'),
     repForm, h('hr'), jointForm, msgBox()];
 }
 
+function guestAccountScreen() {
+  return [topBar(backBtn()), h('h1', {}, S.profile.name), h('p', { class: 'muted' }, 'You are a guest. No account, no password.'),
+    h('h2', {}, h('span', {}, 'Leave')),
+    h('p', { class: 'warn' }, 'Removes all your ticks, then signs you out. You cannot get back in to the same guest later.'),
+    h('button', { class: 'secondary danger', on: { click: () => { if (confirm('Remove my ticks and leave?')) leaveGuest(); } } }, 'Remove my ticks and leave'), msgBox()];
+}
 function accountScreen() {
+  if (isGuest()) return guestAccountScreen();
   const form = h('form', { on: { submit: (e) => { e.preventDefault(); if (confirm('Delete everything? This cannot be undone.')) deleteAccount(e.target); } } },
     h('h2', {}, h('span', {}, 'Delete my account')),
     h('p', { class: 'warn' }, 'Removes your ticks, your list, pictures and your name. Friends’ ticks on your list are left behind and no longer shown.'),
@@ -742,7 +867,7 @@ function render() {
       : S.panel === 'account' && S.profile ? accountScreen() : listScreen();
   } else content = [h('p', { class: 'loading' }, 'Loading…')];
   if (!(S.screen === 'list' && S.panel === 'list')) content = [h('div', { class: 'narrow' }, content)];   // forms stay narrow on wide screens
-  content.push(warnBox(), authDialog(), lookDialog(), fxConfirm(), renameDialog());
+  content.push(warnBox(), authDialog(), lookDialog(), fxConfirm(), renameDialog(), clearClaimDialog());
   if (prefs.effect && S.screen === 'list' && !fxStarted) { fxStarted = true; requestAnimationFrame(() => runEffect()); }
   root.dataset.view = S.screen === 'list' && S.panel === 'list' && isOwner() ? 'owner' : 'other';
   root.replaceChildren(...content);

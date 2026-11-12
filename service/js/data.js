@@ -3,8 +3,8 @@ import {
   doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, writeBatch, collection, collectionGroup,
   query, where, serverTimestamp, deleteField
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { newListId, mapOldItem, nextItemId } from './logic.js?v=20261112m';
-import { normTag } from './tags.js?v=20261112m';
+import { newListId, mapOldItem, nextItemId } from './logic.js?v=20261112s';
+import { normTag } from './tags.js?v=20261112s';
 
 export function makeData(db) {
   const listRef = (id) => doc(db, 'lists', id);
@@ -70,7 +70,7 @@ export function makeData(db) {
   // A ticker has 2 docs per list: uid_a (anonymous: the owner sees "someone") and uid_n (named: the owner sees the shown name).
   // Version 2 docs only (v: 2). Older doc types are ignored.
   async function loadTicks(listId, isOwner) {
-    const q = isOwner ? query(ticksCol(listId), where('v', '==', 2)) : ticksCol(listId);
+    const q = query(ticksCol(listId), where('v', '==', 2));       // v2 only, for everybody (guests may read nothing else)
     const snap = await getDocs(q);
     return snap.docs.map((d) => d.data()).filter((t) => t.v === 2);
   }
@@ -78,7 +78,7 @@ export function makeData(db) {
     const b = writeBatch(db);
     [['_a', anon, false, ''], ['_n', named, true, shown]].forEach(([suffix, items, flag, name]) => {
       const ref = doc(db, 'lists', listId, 'ticks', user.uid + suffix);
-      if (items.length) b.set(ref, { uid: user.uid, name, named: flag, v: 2, items, updatedAt: serverTimestamp() });
+      if (items.length) b.set(ref, { uid: user.uid, name, named: flag, v: 2, ...(user.isAnonymous ? { guest: true } : {}), items, updatedAt: serverTimestamp() });
       else b.delete(ref);
     });
     await b.commit();
@@ -86,6 +86,30 @@ export function makeData(db) {
   async function saveTitle(listId, list, title) {
     await updateDoc(listRef(listId), { title, lastId: list.lastId, updatedAt: serverTimestamp() });
     list.title = title;
+  }
+
+  async function saveCurrency(listId, list, code) {
+    await updateDoc(listRef(listId), { currency: code, lastId: list.lastId, updatedAt: serverTimestamp() });
+    list.currency = code;
+  }
+  // Owner removes the claim(s) on one item. Other items in the same tick doc stay. (The rules allow only this.)
+  async function clearClaims(listId, itemId) {
+    const snap = await getDocs(query(ticksCol(listId), where('v', '==', 2)));
+    let n = 0;
+    for (const d of snap.docs) {
+      const items = d.data().items || [];
+      if (!items.includes(itemId)) continue;
+      const rest = items.filter((x) => x !== itemId);
+      if (rest.length) await updateDoc(d.ref, { items: rest, updatedAt: serverTimestamp() });
+      else await deleteDoc(d.ref);
+      n++;
+    }
+    return n;
+  }
+  // Owner switch: may guests (no account) tick this list?
+  async function saveGuests(listId, list, on) {
+    await updateDoc(listRef(listId), { allowGuests: !!on, lastId: list.lastId, updatedAt: serverTimestamp() });
+    list.allowGuests = !!on;
   }
 
   // ---- pictures (one small data URL per item, inside Firestore) ----
@@ -116,10 +140,13 @@ export function makeData(db) {
   }
 
   // ---- delete my account data. Order matters (the rules check it). ----
-  async function deleteMyData(user, profile, list, onStep) {
-    onStep('Removing my ticks');
+  async function deleteMyTicks(user) {
     const mine = await getDocs(query(collectionGroup(db, 'ticks'), where('uid', '==', user.uid)));
     for (const d of mine.docs) await deleteDoc(d.ref);
+  }
+  async function deleteMyData(user, profile, list, onStep) {
+    onStep('Removing my ticks');
+    await deleteMyTicks(user);
     for (const k of ['l0', 'l1', 'l2']) {
       const id = profile[k];
       if (!id) continue;
@@ -141,5 +168,5 @@ export function makeData(db) {
   }
 
   return { getProfile, savePrefs, saveTitle, getList, reserveName, createList, saveItem, removeItem, saveOrder, saveTagSettings,
-    loadTicks, writeMyTicks, savePic, loadPic, deletePic, importOld, deleteMyData };
+    loadTicks, writeMyTicks, saveGuests, saveCurrency, clearClaims, savePic, loadPic, deletePic, importOld, deleteMyTicks, deleteMyData };
 }

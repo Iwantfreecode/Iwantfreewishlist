@@ -58,7 +58,7 @@ try:
     # tags: joint
     O.click('button:has-text("Tags")'); O.wait_for_selector('h1:has-text("Tags")')
     O.check('input[name=rep][value="clothes"]'); O.click('button:has-text("Save repeatable tags")'); O.wait_for_selector('text=Tags saved.')
-    O.fill('input[name=jname]','big bag'); O.check('input[name=jt][value="travel bag"]'); O.check('input[name=jt][value="laptop bag"]'); O.click('button:has-text("Add joint tag")'); time.sleep(2); print('MSG', O.locator('.msg').all_inner_texts(), 'JOINTS', O.locator('.row-sm').all_inner_texts()); O.wait_for_selector('text=big bag = laptop bag + travel bag',timeout=15000)
+    O.fill('input[name=jname]','big bag'); O.check('input[name=jt][value="travel bag"]'); O.check('input[name=jt][value="laptop bag"]'); O.click('button:has-text("Add combined tag")'); time.sleep(2); print('MSG', O.locator('.msg').all_inner_texts(), 'JOINTS', O.locator('.row-sm').all_inner_texts()); O.wait_for_selector('text=big bag = laptop bag + travel bag',timeout=15000)
     ok('6 repeatable + joint tag saved', True)
     O.click('text=Back')
     O.context.grant_permissions(['clipboard-read','clipboard-write'],origin='http://localhost:8123')

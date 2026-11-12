@@ -55,7 +55,19 @@ export function totalToGet(list) {
   return { count, got, sum };
 }
 
-export const baht = (n) => '฿' + Math.round(n).toLocaleString('en-US');
+// ---- money -----------------------------------------------------------------------
+// Currencies the free rate source (ECB data) knows. The owner picks one for the list; prices are typed in it.
+export const CURRENCIES = { THB: '฿', USD: '$', EUR: '€', GBP: '£', JPY: '¥', CNY: 'CN¥', SGD: 'S$', MYR: 'RM', IDR: 'Rp', PHP: '₱', INR: '₹', KRW: '₩',
+  AUD: 'A$', CAD: 'C$', HKD: 'HK$', CHF: 'CHF ', NZD: 'NZ$' };
+export const money = (n, code = 'THB') => (CURRENCIES[code] || code + ' ') + Math.round(n).toLocaleString('en-US');
+// Round down / up to 2 significant digits (63.2 -> 63, 1234 -> 1,200). Only for guesses, so rough is right.
+const sig2 = (v, up) => { if (!(v > 0)) return 0; const step = Math.pow(10, Math.max(0, Math.floor(Math.log10(v)) - 1)); return (up ? Math.ceil : Math.floor)(v / step - 1e-9) * step; };
+export const RATE_BAND = 0.05;      // a converted price is shown as a range of plus or minus 5 percent
+// "$63–$70" for 2400 THB at rate 0.0277. The range is a guess: the real shop price and the real rate will differ.
+export function convertedRange(price, priceMax, rate, to) {
+  const lo = sig2(price * rate * (1 - RATE_BAND), false), hi = sig2((priceMax > price ? priceMax : price) * rate * (1 + RATE_BAND), true);
+  return lo >= hi ? money(hi, to) : money(lo, to) + '–' + money(hi, to);
+}
 
 // Firebase error codes -> plain words.
 export function friendlyError(e) {
@@ -68,12 +80,12 @@ export function friendlyError(e) {
     'auth/weak-password': 'Password is too short (min 6).',
     'auth/popup-closed-by-user': 'Sign-in window was closed.',
     'auth/popup-blocked': 'The browser blocked the sign-in window. Allow pop-ups and try again.',
-    'auth/unauthorized-domain': 'This web address is not allowed yet. Add it in Firebase > Authentication > Settings > Authorized domains.',
-    'auth/operation-not-allowed': 'This sign-in type is switched off in Firebase.',
+    'auth/unauthorized-domain': 'This website cannot sign people in yet. Please tell the site owner.',
+    'auth/operation-not-allowed': 'This way of signing in is turned off right now. Please try another way.',
     'auth/network-request-failed': 'No connection. Try again.',
-    'permission-denied': 'Not allowed. (Rules refused this.)'
+    'permission-denied': 'You do not have permission to do that.'
   };
-  return map[c] || ('Something went wrong' + (c ? ' (' + c + ')' : '') + '.');
+  return map[c] || 'Something went wrong. Please try again.';
 }
 
 // ---- items ----------------------------------------------------------------
@@ -138,7 +150,7 @@ export function checkItemInput(v) {
   if (!n) return 'Give the item a name.';
   if (n.length > 120) return 'The name is too long (max 120).';
   const badLine = String(v.picUrls || '').split(/\n/).map((x) => x.trim()).find((x) => x && !isHttps(x));
-  if (badLine) return 'Every picture link must start with https://';
+  if (badLine) return 'Each picture link must be a secure web address (it starts with https).';
   if (String(v.picUrls || '').split(/\n/).filter((x) => x.trim()).length > MAX_PIC_LINKS) return 'Max ' + MAX_PIC_LINKS + ' picture links.';
   if (v.price !== '' && v.price != null && !(Number(v.price) >= 0)) return 'Price must be a number.';
   return '';

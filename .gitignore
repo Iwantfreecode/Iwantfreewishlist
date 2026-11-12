@@ -1,1 +1,6 @@
 *.png
+node_modules
+tests/logic.mjs
+tests/tags.mjs
+tests/rates.mjs
+!service/og.png

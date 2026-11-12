@@ -22,7 +22,7 @@ try:
     pg.fill('input[name=name]','Bag'); pg.fill('input[name=price]','100')
     pg.set_input_files('input[name=pic]','/tmp/emu/s0.jpg'); pg.set_input_files('input[name=pic2]','/tmp/emu/s1.jpg')
     pg.fill('textarea[name=picUrls]','https://localhost:1/a.jpg\nhttps://localhost:1/b.jpg\nhttp://bad.example/c.jpg')
-    pg.click('button:has-text("Save")'); time.sleep(.5); ok('bad link blocked',pg.locator('text=Every picture link must start with https').count()==1)
+    pg.click('button:has-text("Save")'); time.sleep(.5); ok('bad link blocked',pg.locator('text=Each picture link must be a secure web address').count()==1)
     ok('typed name survives the error',pg.input_value('input[name=name]')=='Bag'); ok('picked file survives',pg.evaluate("document.querySelector('input[name=pic]').files.length")==1)
     pg.fill('textarea[name=picUrls]','https://localhost:1/a.jpg\nhttps://localhost:1/b.jpg')
     pg.wait_for_selector('text=Saved.',timeout=1) if False else None

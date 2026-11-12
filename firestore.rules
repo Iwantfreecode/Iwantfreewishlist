@@ -1,4 +1,4 @@
-// Stage 3 + multi pictures (2 uploads iNN / iNN_1, up to 8 links in picUrls). From the Fable design. Tested 2026-11-11 in the Firebase emulator: 39 cases (tests/rules_cases.mjs) + browser flows (tests/ui_e2e.py), all pass.
+// Stage 3 + guests (anonymous ticks, owner switch allowGuests) + multi pictures (2 uploads iNN / iNN_1, up to 8 links in picUrls). From the Fable design. Tested 2026-11-12 in the Firebase emulator: 101 cases (tests/rules_cases.mjs) + browser flows (tests/ui_e2e.py), all pass.
 // Not yet tested on the live project (see docs/setup-steps.md, step 'Live checks').
 rules_version = '2';
 service cloud.firestore {
@@ -23,23 +23,23 @@ service cloud.firestore {
     && i.get('picUrl','').size() <= 500 && i.get('price',0) is number && i.get('priceMax',0) is number
     && i.get('picUrls',[]) is list && i.get('picUrls',[]).size() <= 8 && i.get('picUrls',[]).join('').size() <= 4000
     && i.get('approx',false) is bool && i.get('picV',0) is int && i.get('picV1',0) is int; }
-  function listShape() { return d().keys().hasOnly(['ownerUid','ownerName','title','repTags','joints','items','order','lastId','updatedAt'])
-    && d().ownerUid == uid() && d().title is string && d().title.size() <= 80 && d().repTags is list && d().repTags.size() <= 30
+  function listShape() { return d().keys().hasOnly(['ownerUid','ownerName','title','repTags','joints','items','order','lastId','updatedAt','allowGuests','currency'])
+    && d().get('allowGuests', false) is bool && d().get('currency', 'THB') in ['THB','USD','EUR','GBP','JPY','CNY','SGD','MYR','IDR','PHP','INR','KRW','AUD','CAD','HKD','CHF','NZD'] && d().ownerUid == uid() && d().title is string && d().title.size() <= 80 && d().repTags is list && d().repTags.size() <= 30
     && d().joints is list && d().joints.size() <= 20 && d().items is map && d().order is list && d().order.size() <= 100; }
   // One write changes a maximum of one item. Rules check that item fully.
   function oneItemChange() { return d().items.diff(resource.data.items).affectedKeys().hasOnly([d().lastId])
-    && d().lastId.matches('^i[0-9]{2}$') && (!(d().lastId in d().items) || itemOk(d().items[d().lastId])); }
+    && (d().lastId == resource.data.lastId || d().lastId.matches('^i[0-9]{2}$')) && (!(d().lastId in d().items) || itemOk(d().items[d().lastId])); }
 
   // NAME RESERVE: create only if the doc is absent. No update. One name for each user.
   match /names/{name} {
    allow get: if signedIn();
-   allow create: if signedIn() && name.matches('^[a-z0-9_]{3,20}$') && d().keys().hasOnly(['uid']) && d().uid == uid()
+   allow create: if signedIn() && prov() != 'anonymous' && name.matches('^[a-z0-9_]{3,20}$') && d().keys().hasOnly(['uid']) && d().uid == uid()
      && userAfter().name == name && (prov() != 'password' || request.auth.token.email == name + '@ticker.invalid');
    allow delete: if signedIn() && resource.data.uid == uid() && !existsAfter(/databases/$(database)/documents/users/$(uid()));
   }
   match /users/{u} {
    allow read: if signedIn() && u == uid();
-   allow create: if signedIn() && u == uid() && userShape() && d().l0 == '' && d().l1 == '' && d().l2 == ''
+   allow create: if signedIn() && prov() != 'anonymous' && u == uid() && userShape() && d().l0 == '' && d().l1 == '' && d().l2 == ''
      && getAfter(/databases/$(database)/documents/names/$(d().name)).data.uid == uid();
    allow update: if signedIn() && u == uid() && userShape() && d().name == resource.data.name
      && slotOk('l0') && slotOk('l1') && slotOk('l2');
@@ -64,11 +64,22 @@ service cloud.firestore {
    match /ticks/{t} {
     // Two doc types per ticker: uid_a = anonymous (name is empty), uid_n = named (the shown name).
     // Version 2 only (v == 2). The owner may only query v == 2 docs, so older tick docs stay hidden from the owner.
-    allow read: if signedIn() && (listDoc(l).ownerUid != uid() || resource.data.v == 2);
+    allow read: if signedIn() && (resource.data.v == 2 || (listDoc(l).ownerUid != uid() && prov() != 'anonymous'));
+    // Guests (anonymous sign-in) may tick only when the owner allows it (allowGuests). If the owner switches it off, a guest may still remove ticks (the list may only get shorter).
     allow create, update: if signedIn() && listDoc(l).ownerUid != uid() && d().named is bool && d().v == 2
-      && t == uid() + (d().named ? '_n' : '_a') && d().keys().hasOnly(['uid','name','named','v','items','updatedAt'])
+      && t == uid() + (d().named ? '_n' : '_a') && d().keys().hasOnly(['uid','name','named','v','items','updatedAt','guest'])
+      && d().get('guest', false) == (prov() == 'anonymous')
+      && d().get('updatedAt', request.time) is timestamp
+      && (prov() != 'anonymous' || listDoc(l).get('allowGuests', false) == true
+        || (resource != null && d().items.hasOnly(resource.data.items) && d().items.size() <= resource.data.items.size() && d().name == resource.data.name))
       && d().uid == uid() && d().name is string && (d().named ? (d().name.size() >= 1 && d().name.size() <= 20) : d().name == '')
       && d().items is list && d().items.size() <= 100 && d().items.join('').size() <= 300;
+    // The owner may remove claims on his own list: shorten a v2 tick doc (never add, never change the name), or delete it when one item is left.
+    allow update: if signedIn() && listDoc(l).ownerUid == uid() && resource.data.v == 2
+      && d().diff(resource.data).affectedKeys().hasOnly(['items','updatedAt']) && d().items is list
+      && d().get('updatedAt', request.time) is timestamp
+      && d().items.hasOnly(resource.data.items) && d().items.size() < resource.data.items.size();
+    allow delete: if signedIn() && listDoc(l).ownerUid == uid() && resource.data.v == 2 && resource.data.items.size() <= 1;
     allow delete: if signedIn() && t in [uid() + '_a', uid() + '_n', uid() + '_o', uid() + '_s'];   // no get(): works after the list is gone
    }
   }

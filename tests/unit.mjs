@@ -1,5 +1,7 @@
 import { logicTags, tagHits, bigHits } from './tags.mjs';
 import { itemPics, picLinksOf, parsePicUrls, mapOldItem, parseTags, parseUrls, moveInOrder, nextItemId, newListId, itemFromForm, checkItemInput } from './logic.mjs';
+import { money, convertedRange, CURRENCIES } from './logic.mjs';
+import { getRate } from './rates.mjs';
 let p=0,f=0; const eq=(n,a,b)=>{ const ok=JSON.stringify(a)===JSON.stringify(b); ok?p++:f++; if(!ok) console.log('FAIL',n,JSON.stringify(a),'!=',JSON.stringify(b)); };
 const it=(id,tags,extra={})=>({id,name:id,tags,repeat:'',...extra});
 const ctx=(items,repTags=[],joints=[])=>({items,repTags,joints});
@@ -91,4 +93,20 @@ eq('stress: one line commas',g('socks, shirt, hat').length,3);
 eq('stress: http link not added, kept in note',(()=>{const x=g('Cable http://a.co/x 150')[0];return [x.price,x.urls.length,x.note.includes('http://a.co/x')]})(),[150,0,true]);
 eq('stress: huge number ignored',g('Thing '+'9'.repeat(40))[0].price,0);
 }
+// ---- money and exchange rates ----
+eq('money: baht',[money(150),money(2400,'USD'),money(1234.6,'EUR')],['฿150','$2,400','€1,235']);
+eq('money: unknown code falls back to the code',money(5,'XYZ'),'XYZ 5');
+eq('range: 2400 THB at 0.0277 USD',convertedRange(2400,0,0.0277,'USD'),'$63–$70');
+eq('range: small price',convertedRange(150,0,0.0277,'USD'),'$3–$5');
+eq('range: price range 3000-3700',convertedRange(3000,3700,0.0277,'USD'),'$78–$110');
+eq('range: never lower than the real value',(()=>{ const t=convertedRange(10000,0,0.0277,'USD').replace(/[^0-9–]/g,'').split('–').map(Number); return t[0]<=277 && t[1]>=277; })(),true);
+eq('range: all list currencies have a symbol',Object.keys(CURRENCIES).length,17);
+const store=()=>{ const m={}; return { getItem:(k)=>m[k]||null, setItem:(k,v)=>{m[k]=v;} }; };
+let calls=0; const okFetch=async()=>{ calls++; return { ok:true, json:async()=>({date:'2026-11-12',rates:{USD:0.0277}}) }; };
+const st=store();
+eq('rate: same currency needs no call',await getRate('THB','THB',okFetch,st),{rate:1,date:''});
+eq('rate: fetched',await getRate('THB','USD',okFetch,st),{rate:0.0277,date:'2026-11-12'});
+await getRate('THB','USD',okFetch,st); eq('rate: second ask uses the saved value',calls,1);
+let bad=false; try { await getRate('THB','EUR',async()=>({ok:false,status:500}),store()); } catch(e){ bad=true; } eq('rate: source error throws',bad,true);
+bad=false; try { await getRate('THB','EUR',async()=>({ok:true,json:async()=>({rates:{}})}),store()); } catch(e){ bad=true; } eq('rate: missing rate throws',bad,true);
 console.log('UNIT',p,'pass',f,'fail');
