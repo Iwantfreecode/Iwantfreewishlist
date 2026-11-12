@@ -6,17 +6,17 @@ import {
   signOut, deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig } from './config.js?v=20261112g';
+import { firebaseConfig } from './config.js?v=20261112h';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
   DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, sanitizePrefs
-} from './logic.js?v=20261112g';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112g';
-import { makeData } from './data.js?v=20261112g';
-import { runEffect } from './effect.js?v=20261112g';
-import { openViewer } from './viewer.js?v=20261112g';
-import { stackThumb } from './stack.js?v=20261112g';
+} from './logic.js?v=20261112h';
+import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112h';
+import { makeData } from './data.js?v=20261112h';
+import { runEffect } from './effect.js?v=20261112h';
+import { openViewer } from './viewer.js?v=20261112h';
+import { stackThumb } from './stack.js?v=20261112h';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -33,7 +33,7 @@ const D = makeData(db);
 const S = {
   screen: 'loading', panel: 'list', user: null, profile: null,
   list: null, listId: null, ticks: [], msg: '', error: false, busy: false,
-  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, picIdx: {}, showAuth: false, copied: false, showLook: false, confirmFx: false, showRename: false
+  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, picIdx: {}, saving: {}, showAuth: false, copied: false, showLook: false, confirmFx: false, showRename: false
 };
 // ---- appearance: saved on this device only, applied by setting CSS variables ----
 let fxStarted = false;
@@ -268,7 +268,13 @@ const withMine = (ticks, open, named) => {
 };
 let tickQueue = Promise.resolve();
 // Taps are handled one after another, so a fast second tap cannot undo or race the first.
-const tickAction = (item, tick) => { tickQueue = tickQueue.then(() => doTick(item, tick)); return tickQueue; };
+// While a tap is waiting or being saved, S.saving[item.id] is set: the row shows a spinner and "Saving…".
+function track(id, run) {
+  S.saving[id] = (S.saving[id] || 0) + 1;
+  tickQueue = tickQueue.then(run).finally(() => { if (!--S.saving[id]) delete S.saving[id]; render(); });
+  return tickQueue;
+}
+const tickAction = (item, tick) => track(item.id, () => doTick(item, tick));
 async function doTick(item, tick) {
   if (!S.user || !S.profile) return say('Sign in to tick items.', true);
   const confirmed = S.warnOk; S.warnOk = false;              // "Tick anyway" counts for this one tick only
@@ -299,7 +305,7 @@ async function doTick(item, tick) {
   }
 }
 // The "Owner sees" switch on one ticked item: move it between my two docs (someone / my name).
-const setNamed = (item, on) => { tickQueue = tickQueue.then(() => setNamedRun(item, on)); return tickQueue; };
+const setNamed = (item, on) => track(item.id, () => setNamedRun(item, on));
 async function setNamedRun(item, on) {
   const mineOpen = myTicks(false).includes(item.id), mineNamed = myTicks(true).includes(item.id);
   if (!mineOpen && !mineNamed || mineNamed === on) return;
@@ -404,13 +410,14 @@ function rowFor(it, c, ctxNow, owner) {
     lead = h('span', { class: 'tick', role: 'img', 'aria-label': 'Taken by someone' }, h('span', { class: 'on-other' }));
   } else {
     lead = h('button', { class: 'tick', 'aria-label': (mine ? 'Untick ' : 'Tick ') + it.name, on: { click: () => tickAction(it, !mine) } },
-      h('span', { class: mine ? 'on-mine' : '' }));
+      h('span', { class: (mine ? 'on-mine' : '') + (S.saving[it.id] ? ' saving' : '') }));
   }
   const meta = [];
   if (it.tags.length) meta.push(it.tags.join(' · '));
   if (it.repeat === 'item') meta.push('can be bought many times');
   let status = '';
-  if (mine) status = h('div', { class: 'status mine' }, 'You are buying this');
+  if (S.saving[it.id] && !owner) status = h('div', { class: 'status saving', role: 'status' }, h('span', { class: 'spin', 'aria-hidden': 'true' }), 'Saving…');
+  else if (mine) status = h('div', { class: 'status mine' }, 'You are buying this');
   else if (claim && !owner && it.repeat !== 'item') status = h('div', { class: 'status' }, 'Someone is buying this');
   else if (owner && claim) status = h('div', { class: 'status mine' }, claim.named && claim.name ? claim.name + ' is buying this' : 'Someone is buying this');
   const named = mine && myTicks(true).includes(it.id);

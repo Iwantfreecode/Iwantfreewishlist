@@ -201,3 +201,13 @@ h4 { margin: 24px 0 0; font-size: 15px; font-weight: 600; }
 .vdots { display: flex; justify-content: center; gap: 8px; padding: 16px 0; padding-bottom: max(16px, env(safe-area-inset-bottom)); min-height: 8px; }
 .vdots i { width: 8px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.35); }
 .vdots i.on { background: #fff; }
+
+/* saving: a small spinner on the tick circle and in the status line while a tap is being saved */
+.tick span.saving { background: none; background-image: none; border-color: var(--line); border-top-color: var(--accent); animation: spin .7s linear infinite; }
+.status.saving { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.spin { width: 12px; height: 12px; border-radius: 6px; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin .7s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .tick span.saving, .spin { animation: none; } }
+:root[data-layout="text"] .tick span.saving { animation: none; border: 0; }
+:root[data-layout="text"] .tick span.saving::before { content: '[…]'; color: var(--accent-ink); }
+:root[data-layout="text"] .spin { display: none; }
