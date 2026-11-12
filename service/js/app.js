@@ -6,17 +6,17 @@ import {
   signOut, deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig } from './config.js?v=20261112h';
+import { firebaseConfig } from './config.js?v=20261112i';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
-  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, sanitizePrefs
-} from './logic.js?v=20261112h';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112h';
-import { makeData } from './data.js?v=20261112h';
-import { runEffect } from './effect.js?v=20261112h';
-import { openViewer } from './viewer.js?v=20261112h';
-import { stackThumb } from './stack.js?v=20261112h';
+  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs
+} from './logic.js?v=20261112i';
+import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112i';
+import { makeData } from './data.js?v=20261112i';
+import { runEffect } from './effect.js?v=20261112i';
+import { openViewer } from './viewer.js?v=20261112i';
+import { stackThumb } from './stack.js?v=20261112i';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -44,6 +44,7 @@ function applyPrefs() {
   const root = document.documentElement, dark = prefs.theme === 'dark' || (prefs.theme === 'device' && darkMq.matches);
   if (prefs.theme === 'device') root.removeAttribute('data-theme'); else root.dataset.theme = prefs.theme;
   root.dataset.layout = prefs.layout;
+  root.dataset.size = prefs.size;
   const v = themeVars(prefs.scheme, dark);
   const set = (k, val) => root.style.setProperty(k, val);
   set('--accent', v.accent); set('--accent-ink', v.accentInk); set('--on-accent', v.onAccent); set('--soft', v.soft);
@@ -536,6 +537,9 @@ function lookDialog() {
       })),
       h('h2', {}, h('span', {}, 'Font')),
       seg('font', [['clean', 'Clean'], ['type', 'Typewriter'], ['cursive', 'Cursive'], ['serif', 'Serif']]),
+      h('h2', {}, h('span', {}, 'Text size')),
+      h('div', { class: 'seg sizes' }, TEXT_SIZES.map(([v, label, px]) =>
+        h('button', { type: 'button', style: 'font-size:' + px + 'px', 'aria-pressed': String(prefs.size === v), on: { click: () => setPrefs({ size: v }) } }, label))),
       h('h2', {}, h('span', {}, 'Layout')), seg('layout', [['app', 'App'], ['text', 'Plain text']]),
       h('h2', {}, h('span', {}, 'Page build effect')),
       h('div', { class: 'seg' }, [[false, 'Off'], [true, 'On']].map(([v, label]) =>

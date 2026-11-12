@@ -192,7 +192,8 @@ export const THEMES = {
 };
 export const THEME_NAMES = Object.keys(THEMES);
 export const themeVars = (name, dark) => (THEMES[name] || THEMES.Rose)[dark ? 'dark' : 'light'];
-export const DEFAULT_PREFS = { theme: 'device', scheme: 'Rose', font: 'clean', layout: 'app', effect: false, shown: '' };
+export const DEFAULT_PREFS = { theme: 'device', scheme: 'Rose', font: 'clean', layout: 'app', size: 'medium', effect: false, shown: '' };
+export const TEXT_SIZES = [['small', 'Small', 14], ['medium', 'Medium', 17], ['large', 'Large', 20], ['xl', 'Super large', 24]];   // [key, label, preview px]
 export const FONTS = {
   clean: "-apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif",
   type: "'Courier Prime', 'Courier New', monospace",
@@ -206,6 +207,7 @@ export function sanitizePrefs(x) {
   if (x && THEMES[x.scheme]) o.scheme = x.scheme;
   if (x && FONTS[x.font]) o.font = x.font;
   if (x && ['app', 'text'].includes(x.layout)) o.layout = x.layout;
+  if (x && TEXT_SIZES.some(([k]) => k === x.size)) o.size = x.size;
   if (x && x.effect === true) o.effect = true;
   if (x && typeof x.shown === 'string') o.shown = x.shown.replace(/[\u0000-\u001f]/g, '').trim().slice(0, 20);
   return o;
