@@ -55,6 +55,12 @@ try:
     pg.locator('.row .thumb').tap(); pg.wait_for_selector('#viewer img',timeout=10000)
     ok('tap opens viewer on the current picture (2 / 4)',pg.inner_text('.vcount')=='2 / 4',pg.inner_text('.vcount'))
     pg.click('.vclose'); pg.screenshot(path='/tmp/emu/stack.png')
+    # a picture must never float on top of a popup (seen on the iPad, 2026-11-12)
+    pg.set_viewport_size({'width':1180,'height':820}); time.sleep(.5)   # iPad Air landscape
+    pg.click('button:has-text("Appearance")'); pg.wait_for_selector('.overlay'); time.sleep(.3)
+    ok('pictures stay below the Appearance popup', pg.evaluate("(()=>{const t=document.querySelector('.row .thumb img, .row .thumb .card');const r=t.getBoundingClientRect();const e=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !!(e&&e.closest('.overlay'));})()"))
+    pg.click('.overlay >> text=Done'); time.sleep(.2)
+    pg.set_viewport_size({'width':390,'height':844}); time.sleep(.3)
     pg.reload(); pg.wait_for_selector("text=multi's list"); ok('survives reload',pg.inner_text('.row .thumb .count')=='1/4')
     # edit: remove upload 2, links shrink to 1
     pg.click('.row >> text=Edit'); pg.wait_for_selector('h1:has-text("Edit item")')
