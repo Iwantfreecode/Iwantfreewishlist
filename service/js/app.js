@@ -6,17 +6,17 @@ import {
   signOut, deleteUser, signInAnonymously, updateProfile
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig, GUESTS_ENABLED } from './config.js?v=20261112w';
-import { getRate } from './rates.js?v=20261112w';
+import { firebaseConfig, GUESTS_ENABLED } from './config.js?v=20261112x';
+import { getRate } from './rates.js?v=20261112x';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, CURRENCIES, money, convertedRange, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
-  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112w';
-import { tagHits, bigHits, allTags } from './tags.js?v=20261112w';
-import { makeData } from './data.js?v=20261112w';
-import { runEffect } from './effect.js?v=20261112w';
-import { openViewer } from './viewer.js?v=20261112w';
-import { stackThumb } from './stack.js?v=20261112w';
+  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112x';
+import { tagHits, bigHits, allTags } from './tags.js?v=20261112x';
+import { makeData } from './data.js?v=20261112x';
+import { runEffect } from './effect.js?v=20261112x';
+import { openViewer } from './viewer.js?v=20261112x';
+import { stackThumb } from './stack.js?v=20261112x';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -288,7 +288,10 @@ const withMine = (ticks, open, named) => {
   const mk = (items, flag) => items.length ? [{ uid: S.user.uid, name: flag ? shownName() : '', named: flag, v: 2, guest: isGuest(), items }] : [];
   return [...ticks.filter((t) => t.uid !== S.user.uid), ...mk(open, false), ...mk(named, true)];
 };
+const SLOW_MSG = 'Still saving. Your connection is slow. Keep this page open.';
 let tickQueue = Promise.resolve();
+// A network call that gives up after `ms` milliseconds, so a dead connection cannot leave "Saving…" on screen forever.
+const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, no) => setTimeout(() => no({ code: 'timeout' }), ms))]);
 // Taps are handled one after another, so a fast second tap cannot undo or race the first.
 // While a tap is waiting or being saved, S.saving[item.id] is set: the row shows a spinner and "Saving…".
 function track(id, run) {
@@ -299,7 +302,9 @@ function track(id, run) {
 const tickAction = (item, tick) => track(item.id, () => doTick(item, tick));
 async function doTick(item, tick) {
   if (!S.user || !S.profile) return say('Sign in to tick items.', true);
+  if (navigator.onLine === false) return say('No connection. Your change was not saved.', true);
   const confirmed = S.warnOk; S.warnOk = false;              // "Tick anyway" counts for this one tick only
+  const before = S.ticks;                                    // kept so a failed save can put the screen back exactly as it was
   try {
     const c0 = claims();
     if (tick) {
@@ -315,15 +320,20 @@ async function doTick(item, tick) {
     };
     S.ticks = withMine(S.ticks, ...change(myTicks(false), myTicks(true)));
     render();                                                 // the tick shows at once
-    const fresh = await D.loadTicks(S.listId, false);         // then check against the real data: two people may tick together
+    const fresh = await withTimeout(D.loadTicks(S.listId, false), 15000);   // then check against the real data: two people may tick together
     S.ticks = fresh;
     if (tick && claims()[item.id] && item.repeat !== 'item' && claims()[item.id].by !== S.user.uid) { render(); return say('Someone just ticked that one.', true); }
     const [open, sur] = change(myTicks(false), myTicks(true));
-    await D.writeMyTicks(S.listId, S.user, shownName(), open, sur);
+    // The browser queues this write if the connection is bad and sends it when the connection is back. So we keep showing
+    // "Saving…" until it is really done, and after 15 seconds we say why it takes long (never "saved" before it is).
+    const slow = setTimeout(() => say(SLOW_MSG), 15000);
+    try { await D.writeMyTicks(S.listId, S.user, shownName(), open, sur); } finally { clearTimeout(slow); if (S.msg === SLOW_MSG) S.msg = ''; }
     S.ticks = withMine(fresh, open, sur); render();
   } catch (e) {
-    try { S.ticks = await D.loadTicks(S.listId, false); } catch (e2) { /* keep what we have */ }
-    say(friendlyError(e), true);
+    // Show what the server really has. If the server cannot be reached either, go back to the screen from before the tap:
+    // a tick that was never saved must not stay on screen, or a friend would think the gift is claimed.
+    try { S.ticks = await withTimeout(D.loadTicks(S.listId, false), 8000); } catch (e2) { S.ticks = before; }
+    say('Your change was not saved. ' + friendlyError(e), true);
   }
 }
 // The "Owner sees" switch on one ticked item: move it between my two docs (someone / my name).
@@ -331,6 +341,7 @@ const setNamed = (item, on) => track(item.id, () => setNamedRun(item, on));
 async function setNamedRun(item, on) {
   const mineOpen = myTicks(false).includes(item.id), mineNamed = myTicks(true).includes(item.id);
   if (!mineOpen && !mineNamed || mineNamed === on) return;
+  const before = S.ticks;
   S.ticks = withMine(S.ticks, on ? myTicks(false).filter((x) => x !== item.id) : [...myTicks(false), item.id],
     on ? [...myTicks(true), item.id] : myTicks(true).filter((x) => x !== item.id));
   render();                                                   // switch moves at once
@@ -340,7 +351,7 @@ async function setNamedRun(item, on) {
     (on ? named : open).push(item.id);
     await D.writeMyTicks(S.listId, S.user, shownName(), open, named);
     S.ticks = await D.loadTicks(S.listId, false); render();
-  } catch (e) { say(friendlyError(e), true); }
+  } catch (e) { S.ticks = before; say('Your change was not saved. ' + friendlyError(e), true); }
 }
 async function renameList(form) {
   const title = form.title.value.trim();

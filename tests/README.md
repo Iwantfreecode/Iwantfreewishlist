@@ -12,3 +12,6 @@ Last run 2026-11-12: rules 57/57, unit 32/32, ui_e2e 37/37, ui_multi_pics 25/25,
 
 6. New 2026-11-12: `ui_guest.py` (guest door, owner switch, owner removes a claim), `ui_money.py` (currency, budget; the rate source is mocked), `ui_contrast.py` (real contrast of 8 themes x light/dark x 2 layouts; friend view and sign-in only).
 Last run 2026-11-12: unit 73, rules 101, ui_e2e 37, ui_look 17, ui_import 14, ui_text_layout 6, ui_text_size 18, ui_multi_pics 25, ui_guest 19, ui_money 11, ui_contrast all pass, ui_saving 7 (flaky: sometimes 6/7 on the old code too, a timing check on the "Saving…" text).
+
+7. New 2026-11-12: `ui_offline_tick.py` (a tick that cannot be saved: offline = no tick and a plain message; bad connection = "Saving…" plus "Still saving…" message, finishes when back, really saved). Needs the emulators. `make_fixtures.py` makes the picture files that ui_e2e.py and ui_multi_pics.py upload (run it once per chat).
+Last run 2026-11-12 (after the offline fix): unit 76, ui_offline_tick 7, ui_e2e 37, ui_saving 7, ui_guest 19, ui_multi_pics 27, ui_look 17, ui_import 14, ui_money 11, ui_text_layout 6, ui_text_size 18. Not rerun: rules_cases (rules unchanged), ui_contrast (CSS unchanged).

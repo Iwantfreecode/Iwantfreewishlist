@@ -83,6 +83,8 @@ export function friendlyError(e) {
     'auth/unauthorized-domain': 'This website cannot sign people in yet. Please tell the site owner.',
     'auth/operation-not-allowed': 'This way of signing in is turned off right now. Please try another way.',
     'auth/network-request-failed': 'No connection. Try again.',
+    'unavailable': 'No connection. Try again.',
+    'timeout': 'This is taking too long. Check your connection and try again.',
     'permission-denied': 'You do not have permission to do that.'
   };
   return map[c] || 'Something went wrong. Please try again.';

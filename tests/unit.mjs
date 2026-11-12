@@ -1,6 +1,6 @@
 import { logicTags, tagHits, bigHits } from './tags.mjs';
 import { itemPics, picLinksOf, parsePicUrls, mapOldItem, parseTags, parseUrls, moveInOrder, nextItemId, newListId, itemFromForm, checkItemInput } from './logic.mjs';
-import { money, convertedRange, CURRENCIES } from './logic.mjs';
+import { money, convertedRange, CURRENCIES, friendlyError } from './logic.mjs';
 import { getRate } from './rates.mjs';
 let p=0,f=0; const eq=(n,a,b)=>{ const ok=JSON.stringify(a)===JSON.stringify(b); ok?p++:f++; if(!ok) console.log('FAIL',n,JSON.stringify(a),'!=',JSON.stringify(b)); };
 const it=(id,tags,extra={})=>({id,name:id,tags,repeat:'',...extra});
@@ -109,4 +109,7 @@ eq('rate: fetched',await getRate('THB','USD',okFetch,st),{rate:0.0277,date:'2026
 await getRate('THB','USD',okFetch,st); eq('rate: second ask uses the saved value',calls,1);
 let bad=false; try { await getRate('THB','EUR',async()=>({ok:false,status:500}),store()); } catch(e){ bad=true; } eq('rate: source error throws',bad,true);
 bad=false; try { await getRate('THB','EUR',async()=>({ok:true,json:async()=>({rates:{}})}),store()); } catch(e){ bad=true; } eq('rate: missing rate throws',bad,true);
+eq('error: offline text (firestore)',friendlyError({code:'unavailable'}),'No connection. Try again.');
+eq('error: timeout text',friendlyError({code:'timeout'}),'This is taking too long. Check your connection and try again.');
+eq('error: unknown stays plain',friendlyError({code:'x'}),'Something went wrong. Please try again.');
 console.log('UNIT',p,'pass',f,'fail');
