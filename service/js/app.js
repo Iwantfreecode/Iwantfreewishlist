@@ -6,16 +6,16 @@ import {
   signOut, deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig } from './config.js?v=20261112l';
+import { firebaseConfig } from './config.js?v=20261112m';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
-  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112l';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112l';
-import { makeData } from './data.js?v=20261112l';
-import { runEffect } from './effect.js?v=20261112l';
-import { openViewer } from './viewer.js?v=20261112l';
-import { stackThumb } from './stack.js?v=20261112l';
+  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112m';
+import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112m';
+import { makeData } from './data.js?v=20261112m';
+import { runEffect } from './effect.js?v=20261112m';
+import { openViewer } from './viewer.js?v=20261112m';
+import { stackThumb } from './stack.js?v=20261112m';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -637,7 +637,8 @@ function importScreen() {
   const I = S.imp, have = S.list.order.length, room = Math.max(0, IMPORT_MAX - have);
   const dup = new Set(itemsArr().map((i) => i.name.trim().toLowerCase()));
   const preview = () => {
-    I.rows = parseImport(I.text).map((r, k) => ({ ...r, use: !dup.has(r.name.toLowerCase()), dup: dup.has(r.name.toLowerCase()) }));
+    const seen = new Set(dup);                                                // same name twice in the paste: keep the first
+    I.rows = parseImport(I.text).map((r) => { const k = r.name.toLowerCase(), d = seen.has(k); seen.add(k); return { ...r, use: !d, dup: d }; });
     let left = room; I.rows.forEach((r) => { if (r.use) { if (left > 0) left--; else { r.use = false; r.over = true; } } });
     S.msg = I.rows.length ? '' : 'Nothing found. Paste one item per line.'; S.error = !I.rows.length; render();
   };
@@ -654,14 +655,14 @@ function importScreen() {
     h('button', { class: 'primary', type: 'button', on: { click: preview } }, 'Preview'), msgBox()];
   if (I.rows && I.rows.length) {
     const n = I.rows.filter((r) => r.use).length;
-    out.push(h('h2', {}, h('span', {}, 'Preview')), h('p', { class: 'warn' }, 'Untick what you do not want. Fix names and prices here. Items with the same name as one on your list are unticked.'));
+    out.push(h('h2', {}, h('span', {}, 'Preview')), h('p', { class: 'warn' }, 'Untick what you do not want. Fix names and prices here. Items whose name is already on your list (or repeated here) are unticked.'));
     I.rows.forEach((r) => out.push(h('div', { class: 'improw' },
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.use, 'aria-label': 'Add ' + r.name, on: { change: (e) => { r.use = e.target.checked; const c = I.rows.filter((x) => x.use).length; const b = document.getElementById('impgo'); if (b) b.textContent = 'Add ' + c + ' items'; } } })),
       h('div', {},
         h('input', { class: 'impname', value: r.name, maxlength: 120, 'aria-label': 'Name', on: { input: (e) => { r.name = e.target.value.slice(0, 120); } } }),
         h('div', { class: 'impmeta' },
           h('input', { class: 'impprice', value: r.price || '', inputmode: 'numeric', placeholder: 'price', 'aria-label': 'Price', on: { input: (e) => { r.price = Number(String(e.target.value).replace(/[^\d]/g, '')) || 0; } } }),
-          h('span', { class: 'muted small' }, [r.urls.length ? r.urls.length + ' link' + (r.urls.length > 1 ? 's' : '') : '', r.dup ? 'already on your list' : r.over ? 'list is full' : r.note ? r.note.slice(0, 40) : ''].filter(Boolean).join(' · ')))))));
+          h('span', { class: 'muted small' }, [r.urls.length ? r.urls.length + ' link' + (r.urls.length > 1 ? 's' : '') : '', r.dup ? 'same name already added' : r.over ? 'list is full' : r.note ? r.note.slice(0, 40) : ''].filter(Boolean).join(' · ')))))));
     out.push(h('label', { class: 'field' }, 'Priority for all new items',
       h('select', { name: 'prio', on: { change: (e) => { I.prio = e.target.value; } } }, PRIORITIES.map(([k, l]) => h('option', { value: k, selected: (I.prio || 'want') === k }, l)))),
       h('button', { class: 'primary', id: 'impgo', type: 'button', disabled: I.busy, on: { click: runImport } }, 'Add ' + n + ' items'));

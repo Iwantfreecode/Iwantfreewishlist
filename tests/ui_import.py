@@ -31,7 +31,7 @@ try:
     # second import: duplicates are unticked
     pg.click('button:has-text("Import items")'); pg.fill('textarea[name=text]','Black backpack 2500\nNew lamp 400'); pg.click('button:has-text("Preview")'); pg.wait_for_selector('.improw')
     ok('duplicate unticked', pg.locator('.improw input[type=checkbox]').nth(0).is_checked()==False and pg.locator('.improw input[type=checkbox]').nth(1).is_checked()==True)
-    ok('duplicate labelled', pg.is_visible('text=already on your list'))
+    ok('duplicate labelled', pg.is_visible('text=same name already added'))
     # csv file
     open('/tmp/imp.csv','w').write('name,price,note,link,priority\n"Shoe, red",1200,size 42,https://s.co/x,Want\nSock,80,,,someday\n')
     pg.set_input_files('input[type=file]','/tmp/imp.csv'); pg.wait_for_function("document.querySelector('.impname') && document.querySelector('.impname').value==='Shoe, red'")

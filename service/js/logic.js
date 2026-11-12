@@ -214,25 +214,51 @@ export function sanitizePrefs(x) {
 
 // ---- import from pasted text, Notes, Sheets or a CSV file -----------------------------
 // parseImport(text) -> rows in the same shape as the old wishlist items (mapOldItem turns them into real items).
+// Free text is messy, so this only guesses what is clear. The preview screen lets the person fix the rest.
 export const IMPORT_MAX = 100;
-const BULLET = /^\s*(?:[-*•·▪◦]|\d+[.)]|\[[ xX]?\])\s*/;
-const CUR = /(?:฿|thb|baht|bath|บาท)/i;
-const NUM = '(\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.\\d+)?';
-const RANGE = new RegExp('(?:(around|about|approx\\.?|~)\\s*)?' + CUR.source + '?\\s*' + NUM + '(?:\\s*(?:-|–|to)\\s*' + CUR.source + '?\\s*' + NUM + ')?\\s*' + CUR.source + '?', 'i');
-const toNum = (s) => Number(String(s || '').replace(/,/g, '')) || 0;
+const CHECK_ON = '☑✅✔✓☒', CHECK_OFF = '☐⬜⬛🔲□▢';
+const BULLET = new RegExp('^\\s*(?:[-*•·▪◦‣▸►→+]|\\d+[.)]|[' + CHECK_ON + CHECK_OFF + ']|\\[[ xX]?\\])\\s*');
+const THB = '(?:฿|thb|baht|bath|บาท)', FOREIGN = '(?:us\\$|\\$|usd|eur|€|£|¥|jpy|yen)';
+const NUMB = '(?:\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d{1,3}(?:\\.\\d{3})+|\\d+(?:\\.\\d+)?)';
+const PRICE_RE = new RegExp('(?<lab>(?:price|cost|budget|ราคา|งบ)\\s*[:=]?\\s*)?(?<ap>(?:around|about|approx\\.?|abt|~|≈)\\s*)?(?<c1>' + THB + '|' + FOREIGN + ')?\\s*(?<a>' + NUMB + ')(?<ka>\\s?k(?![a-z0-9]))?'
+  + '(?:\\s*(?:-|–|to)\\s*(?<c2>' + THB + '|' + FOREIGN + ')?\\s*(?<b>' + NUMB + ')(?<kb>\\s?k(?![a-z0-9]))?)?\\s*(?<c3>' + THB + '|' + FOREIGN + ')?(?:\\s*(?:each|ea\\.?|/\\s?[a-z]+|x\\s?\\d+))?', 'gi');
+const numVal = (raw, k) => {
+  if (!raw) return 0;
+  let n;
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(raw)) n = parseFloat(raw.replace(/,/g, ''));        // 1,200 or 1,200.50
+  else if (/^\d{1,3}(\.\d{3})+$/.test(raw)) n = Number(raw.replace(/\./g, ''));                // 15.000
+  else n = parseFloat(raw);
+  n = Math.round((Number.isFinite(n) ? n : 0) * (k ? 1000 : 1));
+  return n > 1e9 ? 0 : n;
+};
+const toNum = (s) => numVal(String(s || '').replace(/\s/g, '').replace(new RegExp(THB, 'ig'), ''), false);
+const isThb = (c) => !!c && new RegExp('^' + THB + '$', 'i').test(c);
 
-// Finds a price in free text. A number counts only with a currency mark, or as the last thing on the line (3+ digits, no leading zero).
-function pullPrice(s) {
-  const hasCur = (m) => CUR.test(m[0]);
-  const all = [...s.matchAll(new RegExp(RANGE.source, 'gi'))];
-  let pick = all.find(hasCur);
-  if (!pick) {
-    const last = all[all.length - 1];
-    if (last && s.slice(last.index + last[0].length).trim() === '' && !/^0/.test(last[2]) && toNum(last[2]) >= 100) pick = last;
+// Finds a price in free text. A number counts when it has a baht mark or a "price" label, or when it ends the line (100+, no leading zero, "2k" ok).
+// Dollars and other money are not turned into baht: they go to `extra` so the person can decide.
+function pullPrice(input) {
+  const s = String(input);
+  let pick = null;
+  for (const m of s.matchAll(PRICE_RE)) {
+    const g = m.groups, thb = isThb(g.c1) || isThb(g.c2) || isThb(g.c3), foreign = !thb && !!(g.c1 || g.c2 || g.c3), lab = !!g.lab;
+    const atEnd = s.slice(m.index + m[0].length).trim() === '';
+    const lead = m[0].length - m[0].trimStart().length, at = m.index + lead;
+    const okBefore = at === 0 || lead > 0 || /[\s:|,(\-–]/.test(s[at - 1]);
+    let ok = thb || foreign || lab;
+    const small = g.b && numVal(g.a, g.ka) < 100 && !g.c1 && !g.ka;          // "Pro 2 - 8,900": judge the second number
+    const rawN = small ? g.b : g.a, kN = small ? g.kb : g.ka;
+    if (!ok && atEnd && (okBefore || small) && !/^0/.test(rawN)) ok = numVal(rawN, kN) >= 100 || !!kN;
+    if (ok) pick = m;
   }
-  if (!pick) return { price: 0, priceMax: 0, approx: false, rest: s };
-  const a = toNum(pick[2]), b = toNum(pick[3]);
-  return { price: a, priceMax: b > a ? b : 0, approx: !!pick[1], rest: (s.slice(0, pick.index) + ' ' + s.slice(pick.index + pick[0].length)) };
+  if (!pick) return { price: 0, priceMax: 0, approx: false, rest: s, extra: '' };
+  const g = pick.groups;
+  let start = pick.index, a = numVal(g.a, g.ka), b = numVal(g.b, g.kb);
+  const curA = !!g.c1;
+  if (b && a < 100 && !curA && !g.ka) { start = pick.index + pick[0].lastIndexOf(g.b); a = b; b = 0; }   // "Pro 2 - 8,900฿": the 2 is part of the name
+  const rest = s.slice(0, start) + ' ' + s.slice(pick.index + pick[0].length);
+  const foreign = !(isThb(g.c1) || isThb(g.c2) || isThb(g.c3)) && !!(g.c1 || g.c2 || g.c3);
+  if (foreign) return { price: 0, priceMax: 0, approx: false, rest, extra: pick[0].replace(/^(?:price|cost|budget)\s*[:=]?\s*/i, '').trim() };
+  return { price: a, priceMax: b > a ? b : 0, approx: !!g.ap, rest, extra: '' };
 }
 
 function splitCsv(text, sep) {                       // quotes allowed, "" is a quote inside quotes
@@ -250,65 +276,111 @@ function splitCsv(text, sep) {                       // quotes allowed, "" is a 
 }
 
 const HEAD = {
-  name: ['name', 'item', 'title', 'product'], price: ['price', 'cost', 'budget'], priceMax: ['max', 'price max', 'max price'],
-  note: ['note', 'notes', 'detail', 'details', 'description', 'comment', 'comments'], url: ['link', 'links', 'url', 'urls', 'shop', 'store'],
-  pic: ['picture', 'pictures', 'image', 'images', 'img', 'photo'], priority: ['priority'], tags: ['tag', 'tags', 'category', 'type']
+  name: ['name', 'item', 'items', 'title', 'product', 'what'], price: ['price', 'cost', 'budget', 'ราคา'], priceMax: ['max', 'price max', 'max price'],
+  note: ['note', 'notes', 'detail', 'details', 'description', 'comment', 'comments', 'remark'],
+  url: ['link', 'links', 'url', 'urls', 'shop', 'store', 'where', 'where to buy', 'buy link', 'shop link', 'website', 'site'],
+  pic: ['picture', 'pictures', 'image', 'images', 'img', 'photo', 'photos', 'pic'], priority: ['priority', 'importance'], tags: ['tag', 'tags', 'category', 'type']
 };
+const normHead = (c) => String(c || '').toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9ก-๙ ]/g, ' ').replace(/\s+/g, ' ').trim();
+const PRIO_WORDS = { high: 'must', urgent: 'must', top: 'must', medium: 'should', mid: 'should', normal: 'want', low: 'someday', 'nice to have': 'someday', later: 'someday', maybe: 'someday' };
 const priorityOf = (s) => {
   const t = String(s || '').trim().toLowerCase();
   const hit = PRIORITIES.find(([k, l]) => k === t || l.toLowerCase() === t);
-  return hit ? hit[0] : t === 'need' ? 'should' : 'want';
+  return hit ? hit[0] : t === 'need' ? 'should' : PRIO_WORDS[t] || 'want';
 };
+const IMG = /\.(?:jpe?g|png|webp|gif|avif)(?:[?#]|$)/i;
+const emptyRow = () => ({ name: '', price: 0, priceMax: 0, approx: false, urls: [], note: '', priority: 'want', tags: [], imgs: [], got: false });
+const addNote = (o, t) => { t = String(t || '').trim(); if (t) o.note = (o.note ? o.note + ' · ' : '') + t; };
+const addLinks = (o, list) => list.forEach((u) => (IMG.test(u) && !o.imgs.length ? o.imgs.push(u) : o.urls.push(u)));
 
-function rowFromCells(cells, map) {
+function rowFromCells(cells, map, heads) {
   const get = (k) => (map[k] >= 0 ? String(cells[map[k]] || '').trim() : '');
-  const links = (s) => String(s).split(/[\s,]+/).filter(isHttps);
-  let p = pullPrice(get('price'));
-  const out = { name: get('name').slice(0, 120), price: p.price, priceMax: p.priceMax, approx: p.approx, urls: links(get('url')), note: get('note').slice(0, 500),
-    priority: priorityOf(get('priority')), tags: get('tags') ? get('tags').split(/[,;|]/).map((x) => x.trim()).filter(Boolean) : [], imgs: links(get('pic')) };
-  const mx = toNum(get('priceMax')); if (mx > out.price) out.priceMax = mx;
-  if (!out.price && get('price')) { const n = toNum(get('price').replace(CUR, '')); if (n) out.price = n; }
-  return out;
+  const links = (x) => String(x).split(/[\s,]+/).filter(isHttps);
+  const o = emptyRow(); o.name = get('name').slice(0, 120);
+  const pr = pullPrice(get('price')); o.price = pr.price; o.priceMax = pr.priceMax; o.approx = pr.approx; addNote(o, pr.extra);
+  if (!o.price && !pr.extra && get('price')) o.price = toNum(get('price'));
+  const mx = toNum(get('priceMax')); if (mx > o.price) o.priceMax = mx;
+  addNote(o, get('note')); o.urls = links(get('url')); o.imgs = links(get('pic'));
+  o.priority = priorityOf(get('priority')); o.tags = get('tags') ? get('tags').split(/[,;|]/).map((x) => x.trim()).filter(Boolean) : [];
+  const used = new Set(Object.values(map));                    // columns we do not know become notes: "Size: M"
+  cells.forEach((c, i) => { if (!used.has(i) && String(c).trim()) addNote(o, (heads[i] ? heads[i] + ': ' : '') + String(c).trim()); });
+  return o;
+}
+
+// One typed line (Notes, chat, markdown) -> one row.
+function rowFromLine(raw, tag) {
+  const o = emptyRow();
+  const m0 = raw.match(new RegExp('^\\s*(?:\\[([xX])\\]|([' + CHECK_ON + ']))'));
+  o.got = !!m0;
+  let s = raw.replace(BULLET, '').trim()
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1 $2')          // markdown link -> name + link
+    .replace(/(\*\*|__|`)/g, '').replace(/^#+\s*/, '');
+  const labelled = /^(?:name|item|product)\s*[:=]/i.test(s) && /[|;]/.test(s);
+  if (labelled) {                                                       // Name: Shirt | Price: 1,200 | Size M
+    for (const part of s.split(/\s*[|;]\s*/)) {
+      const kv = part.match(/^([^:=]{1,20})\s*[:=]\s*(.*)$/); const key = kv ? normHead(kv[1]) : '', val = kv ? kv[2].trim() : part.trim();
+      const kind = Object.keys(HEAD).find((k) => HEAD[k].includes(key));
+      if (kind === 'name') o.name = val; else if (kind === 'price') { const p = pullPrice(val); o.price = p.price || toNum(val); o.priceMax = p.priceMax; o.approx = p.approx; addNote(o, p.extra); }
+      else if (kind === 'url') addLinks(o, val.split(/\s+/).filter(isHttps)); else if (kind === 'note') addNote(o, val);
+      else if (kind === 'priority') o.priority = priorityOf(val); else if (kind === 'tags') o.tags = val.split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+      else addNote(o, part.trim());
+    }
+    o.name = o.name.slice(0, 120); if (tag) o.tags.push(tag); return o;
+  }
+  s = s.replace(/^(?:name|item|product)\s*[:=]\s*/i, '');
+  addLinks(o, (s.match(/https:\/\/[^\s)>\]]+/g) || []));
+  for (const u of (s.match(/http:\/\/[^\s)>\]]+/g) || [])) addNote(o, 'link (http, not added): ' + u);
+  s = s.replace(/https?:\/\/[^\s)>\]]+/g, ' ');
+  const p = pullPrice(s); o.price = p.price; o.priceMax = p.priceMax; o.approx = p.approx; addNote(o, p.extra);
+  let name = p.rest.replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').replace(/[\s\-–—:|,@(/]+$/, '').replace(/^[\s\-–—:|,@)]+/, '').trim();
+  const par = name.match(/^(.*\S)\s*\(([^()]{1,100})\)$/);                 // "Keyboard (Keychron K2)" -> note
+  if (par) { name = par[1].trim(); addNote(o, par[2]); }
+  else { const d = name.match(/^(.{2,}?)\s+[-–—]\s+(.+)$/); if (d) { name = d[1].trim(); addNote(o, d[2]); } }     // "Tripod - carbon fiber" -> note
+  o.name = name.slice(0, 120); if (tag) o.tags.push(tag);
+  return o;
 }
 
 export function parseImport(text) {
   const src = String(text || '').replace(/^﻿/, '');
   if (!src.trim()) return [];
-  const lines = src.split(/\r?\n/).filter((l) => l.trim());
+  const lines = src.split(/\r?\n/).filter((l) => /[\p{L}\p{N}]/u.test(l));
+  if (!lines.length) return [];
   let grid = null;
   if (lines.some((l) => l.includes('\t'))) grid = splitCsv(src, '\t');
   else {
-    const first = lines[0].toLowerCase();
+    const first = normHead(lines[0]);
     for (const sep of [',', ';']) {
-      const cells = first.split(sep).map((x) => x.trim().replace(/^"|"$/g, ''));
+      const cells = lines[0].split(sep).map((x) => normHead(x.replace(/^"|"$/g, '')));
       if (cells.length > 1 && cells.some((c) => HEAD.name.includes(c))) { grid = splitCsv(src, sep); break; }
     }
+    void first;
   }
   let rows = [];
   if (grid) {
-    const head = grid[0].map((c) => c.trim().toLowerCase());
-    const find = (k) => head.findIndex((c) => HEAD[k].includes(c));
-    const map = {}; for (const k of Object.keys(HEAD)) map[k] = find(k);
-    if (map.name >= 0) rows = grid.slice(1).map((c) => rowFromCells(c, map));
+    const heads = grid[0].map((c) => String(c).trim());
+    const norm = heads.map(normHead);
+    const map = {}; for (const k of Object.keys(HEAD)) map[k] = norm.findIndex((c) => HEAD[k].includes(c));
+    if (map.name >= 0) rows = grid.slice(1).map((c) => rowFromCells(c, map, heads));
     else rows = grid.map((c) => {                          // no header: first cell = name, then guess from what each cell looks like
-      const o = { name: String(c[0] || '').trim().slice(0, 120), price: 0, priceMax: 0, approx: false, urls: [], note: '', priority: 'want', tags: [], imgs: [] };
+      const o = emptyRow(); o.name = String(c[0] || '').trim().slice(0, 120);
       for (const x of c.slice(1).map((y) => String(y).trim()).filter(Boolean)) {
-        if (isHttps(x)) o.urls.push(x);
-        else if (!o.price && /^(?:฿|thb)?\s*[\d,]+(?:\.\d+)?\s*(?:฿|baht|thb)?$/i.test(x)) o.price = toNum(x.replace(CUR, ''));
-        else o.note = (o.note ? o.note + ' ' : '') + x;
+        if (isHttps(x)) addLinks(o, [x]);
+        else if (!o.price && /^(?:฿|thb)?\s*[\d,]+(?:\.\d+)?\s*(?:฿|baht|thb)?$/i.test(x)) o.price = toNum(x);
+        else addNote(o, x);
       }
       return o;
     });
-  } else {                                                  // one item per line (Notes, chat, anything typed)
-    rows = lines.map((raw) => {
-      const mark = raw.match(/^\s*\[([xX])\]/);
-      let s = raw.replace(BULLET, '').trim();
-      const urls = s.match(/https:\/\/\S+/g) || [];
-      s = s.replace(/https:\/\/\S+/g, ' ');
-      const p = pullPrice(s);
-      const name = p.rest.replace(/\s+/g, ' ').replace(/[\s\-–:|,@(]+$/, '').replace(/^[\s\-–:|,@)]+/, '').trim();
-      return { name: name.slice(0, 120), price: p.price, priceMax: p.priceMax, approx: p.approx, urls, note: '', priority: 'want', tags: [], imgs: [], got: !!mark };
-    });
+  } else if (lines.length === 1 && (lines[0].match(/,/g) || []).length >= 2 && !/\d/.test(lines[0]) && !/https?:/.test(lines[0])) {
+    rows = lines[0].split(',').map((x) => ({ ...emptyRow(), name: x.trim().slice(0, 120) }));        // "socks, shirt, hat"
+  } else {                                                  // one item per line, headings become tags
+    const listy = (l) => BULLET.test(l) || /^\s{2,}\S/.test(l) || /^\t/.test(l);
+    const useHeads = lines.filter(listy).length >= lines.length / 2;
+    let tag = '';
+    for (const l of lines) {
+      const colon = /[:：]\s*$/.test(l), shout = !/\p{Ll}/u.test(l) && /\p{Lu}/u.test(l);       // "TECH:" or "WISHLIST 2026" = heading, not an item
+      if (useHeads && !listy(l) && (colon || shout)) { tag = colon ? l.replace(/[:：]\s*$/, '').trim().toLowerCase().slice(0, 30) : ''; continue; }
+      rows.push(rowFromLine(l, tag));
+    }
   }
-  return rows.filter((r) => r.name).slice(0, IMPORT_MAX).map((r) => ({ ...r, urls: r.urls.slice(0, 3) }));
+  return rows.filter((r) => r.name).slice(0, IMPORT_MAX).map((r) => ({ ...r, urls: r.urls.slice(0, 3), tags: r.tags.slice(0, 5) }));
 }

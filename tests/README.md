@@ -8,3 +8,4 @@
 4. `unit.mjs`: copy service/js/logic.js and tags.js next to it as logic.mjs and tags.mjs
 5. `ui_viewer_harness.py`: viewer.js + style.css + 3 jpgs in a folder on :8124
 Last run 2026-11-12: rules 57/57, unit 32/32, ui_e2e 37/37, ui_multi_pics 25/25, ui_saving 7/7, ui_text_size 18/18, ui_look 17/17, viewer harness 16/16.
+5. `import_stress.mjs`: prints how 18 messy lists are read (same logic.mjs copy as unit.mjs). Look at it by eye after changing the import parser.

@@ -63,4 +63,32 @@ eq('import empty',parseImport('  \n '),[]);
 eq('import cap 100',parseImport(Array.from({length:150},(_,i)=>'item '+i).join('\n')).length,100);
 eq('import no header table',(()=>{const r=parseImport('Cup\t250\tblue\nPlate\thttps://p.co');return [r[0].price,r[0].note,r[1].urls.length]})(),[250,'blue',1]);
 }
+
+{
+const g=(t)=>parseImport(t);
+let r=g('☐ AirPods Pro 2 - 8,900฿\n✅ Mechanical keyboard (Keychron K2) 3,500 baht\n• Water bottle $25\n- [Sony XM5](https://sony.com/x) - 11,990');
+eq('stress: Pro 2 - 8,900฿',[r[0].name,r[0].price],['AirPods Pro 2',8900]);
+eq('stress: paren becomes note + checkbox got',[r[1].name,r[1].price,r[1].note,r[1].got],['Mechanical keyboard',3500,'Keychron K2',true]);
+eq('stress: dollars never become baht',[r[2].price,r[2].note],[0,'$25']);
+eq('stress: markdown link',[r[3].name,r[3].price,r[3].urls.length],['Sony XM5',11990,1]);
+r=g('Gaming mouse 2k\nMonitor 4K 144hz 8.5k\nBike 15.000\nPlane ticket 1,200.50\nGift card 500 x2\nCoffee 85/cup\n2024 calendar 150');
+eq('stress: k suffix',[r[0].price,r[1].name,r[1].price],[2000,'Monitor 4K 144hz',8500]);
+eq('stress: 15.000 is fifteen thousand',r[2].price,15000);
+eq('stress: decimals',r[3].price,1201);
+eq('stress: x2 ignored in price',[r[4].name,r[4].price],['Gift card',500]);
+eq('stress: small number stays',[r[5].price],[0]);
+eq('stress: year at start stays in name',[r[6].name,r[6].price],['2024 calendar',150]);
+r=g('Name: Linen shirt | Price: 1,200 | Size M\nBook "Atomic Habits" ราคา 350 บาท\nหูฟัง Sony 5,990 บาท');
+eq('stress: labelled line',[r[0].name,r[0].price,r[0].note],['Linen shirt',1200,'Size M']);
+eq('stress: thai price word',[r[1].price,r[2].price],[350,5990]);
+r=g('WISHLIST 2026\n\nTECH:\n  - Laptop 35000\n  - Mouse 590\nHOME:\n  - Sofa 12,000');
+eq('stress: headings become tags',r.map((x)=>[x.name,x.tags[0]]),[['Laptop','tech'],['Mouse','tech'],['Sofa','home']]);
+r=g('Product,Cost (THB),Where to buy,Notes\n"Rice cooker",1990,https://shop.com/rc,"3L, white"\n,100,,');
+eq('stress: other header names',[r.length,r[0].price,r[0].urls.length,r[0].note],[1,1990,1,'3L, white']);
+r=g('Item\tPrice\tLink\nCase\t590\thttps://c.co\tblack');
+eq('stress: extra column goes to note',r[0].note,'black');
+eq('stress: one line commas',g('socks, shirt, hat').length,3);
+eq('stress: http link not added, kept in note',(()=>{const x=g('Cable http://a.co/x 150')[0];return [x.price,x.urls.length,x.note.includes('http://a.co/x')]})(),[150,0,true]);
+eq('stress: huge number ignored',g('Thing '+'9'.repeat(40))[0].price,0);
+}
 console.log('UNIT',p,'pass',f,'fail');
