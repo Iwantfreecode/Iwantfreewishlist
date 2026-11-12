@@ -6,16 +6,17 @@ import {
   signOut, deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig } from './config.js?v=20261112f';
+import { firebaseConfig } from './config.js?v=20261112g';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, baht, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
   DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, sanitizePrefs
-} from './logic.js?v=20261112f';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112f';
-import { makeData } from './data.js?v=20261112f';
-import { runEffect } from './effect.js?v=20261112f';
-import { openViewer } from './viewer.js?v=20261112f';
+} from './logic.js?v=20261112g';
+import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112g';
+import { makeData } from './data.js?v=20261112g';
+import { runEffect } from './effect.js?v=20261112g';
+import { openViewer } from './viewer.js?v=20261112g';
+import { stackThumb } from './stack.js?v=20261112g';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -32,7 +33,7 @@ const D = makeData(db);
 const S = {
   screen: 'loading', panel: 'list', user: null, profile: null,
   list: null, listId: null, ticks: [], msg: '', error: false, busy: false,
-  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, showAuth: false, copied: false, showLook: false, confirmFx: false, showRename: false
+  mode: 'signin', tab: 'all', reorder: false, editId: null, warn: null, pics: {}, picIdx: {}, showAuth: false, copied: false, showLook: false, confirmFx: false, showRename: false
 };
 // ---- appearance: saved on this device only, applied by setting CSS variables ----
 let fxStarted = false;
@@ -430,10 +431,16 @@ function rowFor(it, c, ctxNow, owner) {
         h('button', { class: 'link', 'aria-label': 'Move down', on: { click: () => move(it.id, 1) } }, '▼')] : '',
       h('button', { class: 'link', on: { click: () => { S.editId = it.id; go('edit'); } } }, 'Edit')) : '');
   const pics = itemPics(it);
+  const picKey = S.listId + it.id;
   const thumb = pics.length
-    ? h('button', { type: 'button', class: 'thumb', 'aria-label': pics.length > 1 ? `Show ${pics.length} pictures of ${it.name}` : 'Show picture of ' + it.name, on: { click: () => showPics(it) } },
-        picEl(it, pics[0]), pics.length > 1 ? h('span', { class: 'count', 'aria-hidden': 'true' }, '1/' + pics.length) : '')
+    ? stackThumb({
+        pics: pics.map((p) => ({ load: () => picSrc(it, p) })), start: S.picIdx[picKey] || 0,
+        label: pics.length > 1 ? `Show ${pics.length} pictures of ${it.name}` : 'Show picture of ' + it.name,
+        onChange: (i) => { S.picIdx[picKey] = i; },
+        onOpen: (i) => { const el = document.querySelector(`[data-pk="${picKey}"]`); showPics(it, i, (j) => { S.picIdx[picKey] = j; if (el && el.setIndex) el.setIndex(j); }); }
+      })
     : h('span', { class: 'pic ph', 'aria-hidden': 'true' }, (it.name || '?').slice(0, 1).toUpperCase());
+  if (pics.length) thumb.dataset.pk = picKey;
   return h('div', { class: 'row' + (owner ? ' owner' : '') }, lead, thumb, body);
 }
 const linkLabel = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return 'link'; } };
@@ -464,7 +471,7 @@ function picEl(it, p) {
   picSrc(it, p).then((src) => { if (src) img.src = src; }).catch(() => {});
   return img;
 }
-function showPics(it) { openViewer(itemPics(it).map((p) => ({ load: () => picSrc(it, p) })), 0, it.name + ' pictures'); }
+function showPics(it, start, onClose) { openViewer(itemPics(it).map((p) => ({ load: () => picSrc(it, p) })), start, it.name + ' pictures', onClose); }
 
 function listScreen() {
   const owner = isOwner();

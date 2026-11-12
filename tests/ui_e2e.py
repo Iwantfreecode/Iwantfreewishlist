@@ -43,7 +43,7 @@ try:
     ok('2 sorted by priority groups', txt(O).index('Must have')<txt(O).index('Need this')<txt(O).index('Want'))
     # picture stored small
     time.sleep(1)
-    pic=O.evaluate("document.querySelector('img.pic') && document.querySelector('img.pic').src.length")
+    pic=O.evaluate("document.querySelector('.row .thumb img') && document.querySelector('.row .thumb img').src.length")
     ok('3 picture shown, under 60000 chars', pic and 1000<pic<=60000, pic)
     # edit item
     O.click('.row:has-text("Cologne") >> text=Edit'); O.wait_for_selector('h1:has-text("Edit item")')
@@ -117,6 +117,7 @@ try:
     ok('22 untick frees item', B.locator('[aria-label="Tick Travel bag"]').count()==1)
     # ---------- race: bob and carl tick same item ----------
     B.click('[aria-label="Tick Cologne"]'); B.wait_for_selector('.row:has-text("Cologne") >> text=You are buying',timeout=15000)
+    time.sleep(1.5)   # the page shows the tick at once; give the server write time to land before carl tries
     C.click('[aria-label="Tick Cologne"]'); time.sleep(2)
     ok('23 carl cannot tick what bob took (conflict message)', 'Someone just ticked that one.' in txt(C), txt(C)[-200:])
     # ---------- bob deletes his account ----------
@@ -133,7 +134,7 @@ try:
     old=json.load(open('/home/claude/iwantfreewishlist/wishlist.json')); n=len([x for x in old['items'] if not x.get('example')])
     ok('27 old list imported', f'Imported {n} items' in txt(I), txt(I)[-120:])
     I.reload(); I.wait_for_selector("text=imp1's list"); ok('28 import survives reload', f'0 of {n}' in txt(I), txt(I)[:200])
-    ok('29 import (http local base) shows no unsafe picture', I.locator('img.pic').count()==0)
+    ok('29 import (http local base) shows no unsafe picture', I.locator('.row .thumb img').count()==0)
     # ---------- owner deletes account ----------
     import urllib.request
     H={'Authorization':'Bearer owner','Content-Type':'application/json'}

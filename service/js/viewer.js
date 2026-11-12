@@ -12,7 +12,7 @@ const make = (tag, attrs = {}, ...kids) => {
   return el;
 };
 
-export function openViewer(slides, start = 0, title = 'Pictures') {
+export function openViewer(slides, start = 0, title = 'Pictures', onClose = null) {
   if (!slides.length || document.getElementById('viewer')) return;
   let i = Math.min(Math.max(start, 0), slides.length - 1);
   const opener = document.activeElement;
@@ -106,6 +106,7 @@ export function openViewer(slides, start = 0, title = 'Pictures') {
     box.remove();
     document.body.style.overflow = prevOverflow;
     if (opener && opener.focus) opener.focus();
+    if (onClose) onClose(i);                          // so the little stack in the list shows the same picture
   }
   function onKey(e) {
     if (e.key === 'Escape') { e.preventDefault(); close(); }

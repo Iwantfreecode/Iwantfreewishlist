@@ -39,6 +39,22 @@ try:
     pg.wait_for_function("document.querySelectorAll('.vcell')[3].textContent.includes('could not')",timeout=8000); ok('dead link message',True)
     pg.screenshot(path='/tmp/emu/viewer_app.png')
     pg.click('.vclose'); ok('closed',pg.locator('#viewer').count()==0)
+    ok('closing viewer moves the little stack to 4/4',pg.inner_text('.row .thumb .count')=='4/4',pg.inner_text('.row .thumb .count'))
+    box=pg.locator('.row .thumb').bounding_box(); cy=box['y']+box['height']/2; cx=box['x']+box['width']/2
+    def tswipe(x0,x1):
+        cdp=ctx.new_cdp_session(pg)
+        for t,x in [('touchStart',x0),('touchMove',(x0+x1)//2),('touchMove',x1),('touchEnd',x1)]:
+            cdp.send('Input.dispatchTouchEvent',{'type':t,'touchPoints':[] if t=='touchEnd' else [{'x':x,'y':cy}]}); time.sleep(.03)
+        time.sleep(.5)
+    cnt=lambda: pg.inner_text('.row .thumb .count')
+    tswipe(int(cx-5),int(cx+25)); ok('swipe right on little stack = back (3/4)',cnt()=='3/4',cnt())
+    ok('swipe did not open the big viewer',pg.locator('#viewer').count()==0)
+    tswipe(int(cx+20),int(cx-20)); ok('swipe left = next (4/4)',cnt()=='4/4',cnt())
+    tswipe(int(cx+20),int(cx-20)); ok('swipe left at the end stays 4/4',cnt()=='4/4',cnt())
+    tswipe(int(cx-5),int(cx+25)); tswipe(int(cx-5),int(cx+25)); ok('back twice = 2/4',cnt()=='2/4',cnt())
+    pg.locator('.row .thumb').tap(); pg.wait_for_selector('#viewer img',timeout=10000)
+    ok('tap opens viewer on the current picture (2 / 4)',pg.inner_text('.vcount')=='2 / 4',pg.inner_text('.vcount'))
+    pg.click('.vclose'); pg.screenshot(path='/tmp/emu/stack.png')
     pg.reload(); pg.wait_for_selector("text=multi's list"); ok('survives reload',pg.inner_text('.row .thumb .count')=='1/4')
     # edit: remove upload 2, links shrink to 1
     pg.click('.row >> text=Edit'); pg.wait_for_selector('h1:has-text("Edit item")')
