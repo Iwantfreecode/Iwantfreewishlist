@@ -6,17 +6,17 @@ import {
   signOut, deleteUser, signInAnonymously, updateProfile
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig, GUESTS_ENABLED } from './config.js?v=20261112s';
-import { getRate } from './rates.js?v=20261112s';
+import { firebaseConfig, GUESTS_ENABLED } from './config.js?v=20261112t';
+import { getRate } from './rates.js?v=20261112t';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, CURRENCIES, money, convertedRange, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
-  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112s';
-import { logicTags, tagHits, bigHits, allTags, normTag } from './tags.js?v=20261112s';
-import { makeData } from './data.js?v=20261112s';
-import { runEffect } from './effect.js?v=20261112s';
-import { openViewer } from './viewer.js?v=20261112s';
-import { stackThumb } from './stack.js?v=20261112s';
+  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112t';
+import { tagHits, bigHits, allTags } from './tags.js?v=20261112t';
+import { makeData } from './data.js?v=20261112t';
+import { runEffect } from './effect.js?v=20261112t';
+import { openViewer } from './viewer.js?v=20261112t';
+import { stackThumb } from './stack.js?v=20261112t';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -71,6 +71,7 @@ const sharedId = params.get('l');
 try { S.cur = localStorage.getItem('sv_cur') || ''; } catch (e) { S.cur = ''; }
 const isOwner = () => !!(S.user && S.list && S.list.ownerUid === S.user.uid);
 const isGoogle = () => !!(S.user && S.user.providerData.some((p) => p.providerId === 'google.com'));
+const NAME_RULE = 'Name: 3 to 20 letters, digits or _ (no spaces).';
 const isGuest = () => !!(S.user && S.user.isAnonymous);
 // Guests have no profile document. Their typed name lives on the sign-in itself (displayName).
 const guestProfile = (user) => ({ name: (user.displayName || 'guest').slice(0, 20), guest: true, l0: '', l1: '', l2: '', prefs: {} });
@@ -171,7 +172,7 @@ async function guestAuth(form) {
 }
 async function passwordAuth(form) {
   const name = cleanName(form.name.value), pass = form.pass.value;
-  if (!validName(name)) return say('Name: 3 to 20 letters, digits or _ (no spaces).', true);
+  if (!validName(name)) return say(NAME_RULE, true);
   S.busy = true;
   try {
     if (S.mode === 'signin') await signInWithEmailAndPassword(auth, nameToEmail(name), pass);
@@ -186,7 +187,7 @@ async function passwordAuth(form) {
 }
 async function pickName(form) {
   const name = cleanName(form.name.value);
-  if (!validName(name)) return say('Name: 3 to 20 letters, digits or _ (no spaces).', true);
+  if (!validName(name)) return say(NAME_RULE, true);
   try {
     await D.reserveName(S.user, name);
     const shown = sanitizePrefs({ shown: form.shown.value }).shown;

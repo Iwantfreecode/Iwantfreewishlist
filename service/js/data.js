@@ -3,8 +3,8 @@ import {
   doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, writeBatch, collection, collectionGroup,
   query, where, serverTimestamp, deleteField
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { newListId, mapOldItem, nextItemId } from './logic.js?v=20261112s';
-import { normTag } from './tags.js?v=20261112s';
+import { newListId, mapOldItem, nextItemId } from './logic.js?v=20261112t';
+import { normTag } from './tags.js?v=20261112t';
 
 export function makeData(db) {
   const listRef = (id) => doc(db, 'lists', id);
@@ -49,10 +49,13 @@ export function makeData(db) {
     await updateDoc(listRef(listId), { ['items.' + id]: item, order, lastId: id, updatedAt: serverTimestamp() });
     list.items[id] = item; list.order = order; list.lastId = id;
   }
+  // Delete the (up to 2) uploaded pictures of one item. Used when an item or a whole list goes.
+  async function deletePicsOf(listId, itemId, item) {
+    if (item && item.picV) await deleteDoc(picRef(listId, itemId));
+    if (item && item.picV1) await deleteDoc(picRef(listId, itemId + '_1'));
+  }
   async function removeItem(listId, list, id) {
-    const gone = list.items[id];
-    if (gone && gone.picV) await deleteDoc(picRef(listId, id));
-    if (gone && gone.picV1) await deleteDoc(picRef(listId, id + '_1'));
+    await deletePicsOf(listId, id, list.items[id]);
     const order = list.order.filter((x) => x !== id);
     await updateDoc(listRef(listId), { ['items.' + id]: deleteField(), order, lastId: id, updatedAt: serverTimestamp() });
     delete list.items[id]; list.order = order; list.lastId = id;
@@ -153,10 +156,7 @@ export function makeData(db) {
       onStep('Removing my list');
       const l = id === profile.l0 && list ? list : await getList(id);
       if (l) {
-        for (const itemId of Object.keys(l.items || {})) {
-          if (l.items[itemId].picV) await deleteDoc(picRef(id, itemId));
-          if (l.items[itemId].picV1) await deleteDoc(picRef(id, itemId + '_1'));
-        }
+        for (const itemId of Object.keys(l.items || {})) await deletePicsOf(id, itemId, l.items[itemId]);
         await deleteDoc(listRef(id));
       }
     }
