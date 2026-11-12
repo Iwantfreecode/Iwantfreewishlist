@@ -6,7 +6,7 @@
    and http://127.0.0.1:9099/emulator/v1/projects/wishlist-service-39517/accounts
 3. `rules_cases.mjs` (needs @firebase/rules-unit-testing), `ui_e2e.py`, `ui_multi_pics.py`, `ui_look.py`, `ui_import.py`, `ui_text_layout.py` (Playwright, serve repo root on :8123, they use ?emu=1)
 4. `unit.mjs`: copy service/js/logic.js, tags.js and rates.js next to it as logic.mjs, tags.mjs and rates.mjs (do this before every run; the copies are git-ignored)
-5. `ui_viewer_harness.py`: viewer.js + style.css + 3 jpgs in a folder on :8124
+5. `ui_viewer_harness.py`: first run `python3 tests/make_viewer_harness.py` (builds /tmp/vt with viewer.js, style.css, 3 jpgs and a #go page; needs Pillow), then the test. Last run 2026-11-12: 16/16.
 Last run 2026-11-12: rules 57/57, unit 32/32, ui_e2e 37/37, ui_multi_pics 25/25, ui_saving 7/7, ui_text_size 18/18, ui_look 17/17, viewer harness 16/16.
 5. `import_stress.mjs`: prints how 18 messy lists are read (same logic.mjs copy as unit.mjs). Look at it by eye after changing the import parser.
 
