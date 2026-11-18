@@ -69,12 +69,13 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     down = { x: e.clientX, t: Date.now() }; swiped = false;
     btn.setPointerCapture(e.pointerId);
   });
+  const atEdge = (mx) => (mx > 0 && cur === 0) || (mx < 0 && cur === n - 1);
   btn.addEventListener('pointermove', (e) => {
     if (!down) return;
     const mx = e.clientX - down.x;
     if (Math.abs(mx) > 6) swiped = true;
     if (!swiped) return;
-    dx = mx;                                           // no stiff edge: past the last picture it goes round to the first (and back)
+    dx = atEdge(mx) ? mx / 2 : mx;                      // at the ends the card pulls back a little (it still goes round if you swipe on)
     cards[cur].style.transition = 'none';
     cards[cur].style.transform = `translateX(${dx}px) rotate(${dx / 12}deg)`;
   });
@@ -83,8 +84,9 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     const d = down; down = null;
     if (!swiped) return;
     const mx = e.clientX - d.x, w = btn.getBoundingClientRect().width;
-    const fast = Math.abs(mx) > 12 && Date.now() - d.t < 250;
-    if (Math.abs(mx) > Math.max(20, w * 0.3) || fast) set((cur + (mx < 0 ? 1 : -1) + n) % n); else set(cur);   // loops: after the last comes the first
+    const edge = atEdge(mx);                            // going round needs a slightly longer swipe than a normal change
+    const fast = Math.abs(mx) > (edge ? 20 : 12) && Date.now() - d.t < 250;
+    if (Math.abs(mx) > (edge ? Math.max(30, w * 0.4) : Math.max(20, w * 0.3)) || fast) set((cur + (mx < 0 ? 1 : -1) + n) % n); else set(cur);   // loops: after the last comes the first
     setTimeout(() => { swiped = false; }, 0);          // the click that follows a swipe is ignored (below)
   };
   btn.addEventListener('pointerup', end);
