@@ -93,7 +93,7 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
       c.style.transition = 'none';                                                    // stop the normal slide: this animation moves the card instead
       const start = { ...pose(before[i].t), o: parseFloat(before[i].o) };
       const end = { ...pose(getComputedStyle(c).transform), o: parseFloat(c.style.opacity) }, endZ = parseInt(c.style.zIndex || '0', 10);
-      const frames = [];
+      const frames = [], zs = [];
       for (let ms = 0; ; ms = Math.min(D, ms + 16)) {
         let p, z;
         if (ms >= steps * T) {                                                       // the pile settles into its final places
@@ -110,11 +110,14 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
             p = mix(st === 0 ? start : slot(k0), slot(k1), t); z = 100 - 2 * (u > 0.5 ? k1 : k0);
           }
         }
-        frames.push({ transform: `translate(${p.x}px,${p.y}px) rotate(${p.r}deg) scale(${p.s})`, opacity: p.o, zIndex: Math.round(z) });
+        frames.push({ transform: `translate(${p.x}px,${p.y}px) rotate(${p.r}deg) scale(${p.s})`, opacity: p.o });
+        zs.push({ zIndex: Math.round(z), at: ms / D });
         if (ms >= D) break;
       }
       frames.forEach((f, k) => { f.offset = k / (frames.length - 1); });
-      c.animate(frames, { duration: D, easing: 'linear', fill: 'backwards' });
+      c.animate(frames, { duration: D, easing: 'linear', fill: 'backwards' });         // movement only (transform + opacity): the phone's graphics chip can run this by itself, so it stays smooth
+      const zf = zs.filter((f, k) => k === 0 || f.zIndex !== zs[k - 1].zIndex).map((f) => ({ zIndex: f.zIndex, offset: f.at, easing: 'step-end' }));   // stacking order changes only at a few moments
+      if (zf.length > 1) { zf[0].offset = 0; zf.push({ zIndex: zf[zf.length - 1].zIndex, offset: 1 }); c.animate(zf, { duration: D, easing: 'linear', fill: 'backwards' }); }
     });
   }
   const set = (i, tell = true, round = 0) => {                    // round: +1 / -1 = going round the end, the side the pictures slide to
