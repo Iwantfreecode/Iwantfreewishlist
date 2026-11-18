@@ -73,21 +73,29 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     ensure(cur); ensure(cur + 1); ensure(cur + 2);
   }
   // Shuffle: going round from one end to the other, the cards fan out like a deck being riffled, then settle with the new picture on top.
-  // The card order (z-index) flips at the widest point of the fan, where nobody can see it jump.
-  const SHUFFLE_MS = 900, FAN_AT = 0.4;
+  // Each card travels along ONE smooth curve from where it was to where it ends up, with a sideways "fan" bump in the middle
+  // (sine shaped, so it never stops or changes speed suddenly). The card order (z-index) flips at the top of the bump, and the picture that ends on top
+  // is lifted a little at that moment so it hops over the others.
+  const SHUFFLE_MS = 900, STEPS = 60;
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);          // slow in, slow out
+  const pose = (matrixText) => { const m = new DOMMatrix(matrixText === 'none' ? undefined : matrixText); return { x: m.e, y: m.f, r: Math.atan2(m.b, m.a) * 180 / Math.PI, s: Math.hypot(m.a, m.b) }; };
   function shuffle(before, was) {
     cards.forEach((c, i) => {
-      const finalT = c.style.transform, finalO = c.style.opacity, finalZ = c.style.zIndex;
-      const near = Math.abs(i - was) <= 2 || Math.abs(i - cur) <= 2;           // only the cards near either end join in
-      const side = i % 2 ? 1 : -1;
-      const fan = `translate(${side * (16 + (i % 3) * 5)}px,${-6 - (i % 3) * 2}px) rotate(${side * (11 + (i % 4) * 4)}deg) scale(.96)`;
-      c.style.transition = 'none';
-      c.animate([
-        { transform: before[i].t, opacity: before[i].o, zIndex: before[i].z, easing: 'cubic-bezier(.2,.7,.3,1)' },          // spread out: quick, then eases
-        { transform: fan, opacity: near ? 1 : 0, zIndex: before[i].z, offset: FAN_AT },
-        { transform: fan, opacity: near ? 1 : 0, zIndex: finalZ, offset: FAN_AT + 0.001, easing: 'cubic-bezier(.45,.05,.25,1)' },   // gather back: slow in, slow out
-        { transform: finalT, opacity: finalO, zIndex: finalZ }
-      ], { duration: SHUFFLE_MS, delay: Math.min(i, 6) * 35, fill: 'backwards' });
+      c.style.transition = 'none';                                                  // stop the normal slide: this animation moves the card instead
+      const from = pose(before[i].t), to = pose(getComputedStyle(c).transform);
+      const fromO = parseFloat(before[i].o), toO = parseFloat(c.style.opacity), finalZ = c.style.zIndex;
+      const near = Math.abs(i - was) <= 2 || Math.abs(i - cur) <= 2;               // only the cards near either end join in
+      const side = i % 2 ? 1 : -1, fx = side * (10 + (i % 3) * 3), fy = -5 - (i % 3) * 2, fr = side * (9 + (i % 4) * 3);
+      const frames = [];
+      for (let k = 0; k <= STEPS; k++) {
+        const t = k / STEPS, e = ease(t), bump = Math.sin(Math.PI * t);
+        const hop = i === cur ? bump : 0;                                           // the picture that ends on top lifts as it hops to the front, so the change of order does not look like a pop
+        const x = from.x + (to.x - from.x) * e + fx * bump, y = from.y + (to.y - from.y) * e + fy * bump - 9 * hop;
+        const r = from.r + (to.r - from.r) * e + fr * bump, sc = from.s + (to.s - from.s) * e - 0.04 * bump + 0.12 * hop;
+        const o = near ? Math.max(fromO + (toO - fromO) * e, bump) : fromO + (toO - fromO) * e;
+        frames.push({ transform: `translate(${x}px,${y}px) rotate(${r}deg) scale(${sc})`, opacity: o, zIndex: t < 0.5 ? before[i].z : finalZ });
+      }
+      c.animate(frames, { duration: SHUFFLE_MS, delay: Math.min(i, 6) * 35, easing: 'linear', fill: 'backwards' });
     });
   }
   const set = (i, tell = true, round = false) => {
