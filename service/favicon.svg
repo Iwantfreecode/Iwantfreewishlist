@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <style>
+    .bg { fill: #FBF8F6; } .ink { color: #D6336C; } .gap { fill: #FBF8F6; stroke: #FBF8F6; }
+    @media (prefers-color-scheme: dark) { .bg { fill: #121011; } .ink { color: #EE6A96; } .gap { fill: #121011; stroke: #121011; } }
+  </style>
+  <rect class="bg" width="512" height="512"/>
+  <g class="ink" transform="translate(79.5 80) scale(11)">
+    <rect x="3" y="2" width="22" height="28" rx="5" fill="none" stroke="currentColor" stroke-width="2.4"/>
+    <path d="M7.5 10.5l2 2 3.5-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M16 10.5h5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="10" cy="17.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <path d="M16 17.5h5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="10" cy="23.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <path d="M16 23.5h3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    <g transform="translate(18.3 16.8) scale(.556)"><path class="gap" d="M12 21C12 21 3 14.5 3 8.5C3 5.5 5.2 3.5 7.8 3.5C9.6 3.5 11.2 4.5 12 6C12.8 4.5 14.4 3.5 16.2 3.5C18.8 3.5 21 5.5 21 8.5C21 14.5 12 21 12 21Z" stroke-width="4.2" stroke-linejoin="round"/><path d="M12 21C12 21 3 14.5 3 8.5C3 5.5 5.2 3.5 7.8 3.5C9.6 3.5 11.2 4.5 12 6C12.8 4.5 14.4 3.5 16.2 3.5C18.8 3.5 21 5.5 21 8.5C21 14.5 12 21 12 21Z" fill="currentColor"/></g>
+  </g>
+</svg>

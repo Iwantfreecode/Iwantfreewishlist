@@ -6,17 +6,17 @@ import {
   signOut, deleteUser, signInAnonymously, updateProfile
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig, GUESTS_ENABLED } from './config.js?v=20261112x';
-import { getRate } from './rates.js?v=20261112x';
+import { firebaseConfig, GUESTS_ENABLED } from './config.js?v=20261112y';
+import { getRate } from './rates.js?v=20261112y';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, CURRENCIES, money, convertedRange, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
-  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112x';
-import { tagHits, bigHits, allTags } from './tags.js?v=20261112x';
-import { makeData } from './data.js?v=20261112x';
-import { runEffect } from './effect.js?v=20261112x';
-import { openViewer } from './viewer.js?v=20261112x';
-import { stackThumb } from './stack.js?v=20261112x';
+  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112y';
+import { tagHits, bigHits, allTags } from './tags.js?v=20261112y';
+import { makeData } from './data.js?v=20261112y';
+import { runEffect } from './effect.js?v=20261112y';
+import { openViewer } from './viewer.js?v=20261112y';
+import { stackThumb } from './stack.js?v=20261112y';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -389,14 +389,14 @@ async function toggleGuests() {
 
 // ---- pieces -----------------------------------------------------------------------
 const lookBtn = () => h('button', { class: 'link', on: { click: () => { S.showLook = true; render(); } } }, 'Appearance');
-// Logo: a small list card (a ticked line, two open lines) with a heart. Drawn in the accent color.
+// Logo: a small list card (a ticked line, two open lines) with a heart badge. Drawn in the accent color; a small gap in the page color separates the heart from the card.
 function logo() {
   const wrap = document.createElement('span'); wrap.className = 'logo'; wrap.setAttribute('aria-hidden', 'true');
   wrap.innerHTML = '<svg viewBox="0 0 32 32" width="30" height="30"><rect x="3" y="2" width="22" height="28" rx="5" fill="none" stroke="currentColor" stroke-width="2.4"/>'
     + '<path d="M7.5 10.5l2 2 3.5-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 10.5h5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
     + '<circle cx="10" cy="17.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 17.5h5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
     + '<circle cx="10" cy="23.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 23.5h3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
-    + '<path d="M26 18.5c-1.6-1.9-4.6-.4-3.1 1.9l3.1 3.1 3.1-3.1c1.5-2.3-1.5-3.8-3.1-1.9z" fill="currentColor"/></svg>';
+    + '<g transform="translate(18.3 16.8) scale(.556)"><path d="M12 21C12 21 3 14.5 3 8.5C3 5.5 5.2 3.5 7.8 3.5C9.6 3.5 11.2 4.5 12 6C12.8 4.5 14.4 3.5 16.2 3.5C18.8 3.5 21 5.5 21 8.5C21 14.5 12 21 12 21Z" style="fill:var(--bg);stroke:var(--bg)" stroke-width="4.2" stroke-linejoin="round"/><path d="M12 21C12 21 3 14.5 3 8.5C3 5.5 5.2 3.5 7.8 3.5C9.6 3.5 11.2 4.5 12 6C12.8 4.5 14.4 3.5 16.2 3.5C18.8 3.5 21 5.5 21 8.5C21 14.5 12 21 12 21Z" fill="currentColor"/></g></svg>';
   return wrap;                      // fixed markup written here, no outside text
 }
 const topBar = (right) => h('header', { class: 'top' }, h('span', { class: 'wordmark' }, logo(), h('span', {}, 'wishlist')), h('span', { class: 'topr' }, lookBtn(), right || ''));

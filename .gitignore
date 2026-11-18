@@ -4,3 +4,4 @@ tests/logic.mjs
 tests/tags.mjs
 tests/rates.mjs
 !service/og.png
+!service/icons/*.png
