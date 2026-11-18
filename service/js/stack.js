@@ -75,7 +75,7 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
   // Going round (from one end to the other): the pictures go UNDER the stack one after another, each one sliding out to the side you pulled
   // and tucking under, until the picture at the other end is on top. Pulling right on the first picture sends 1, 2, 3 ... under to the right
   // until the last is on top; pulling left on the last sends them under to the left until the first is on top. Then the pile settles into place.
-  const TOTAL_MS = 900, SETTLE_MS = 140, SLIDE = 0.85;
+  const TOTAL_MS = 600, SETTLE_MS = 140, SLIDE = 0.85;
   const PILE = [[0, 0, 0, 1], [7, -4, 4, .95], [13, -7, 8, .9]];                  // same numbers as POS above, as numbers: x, y, rotation, scale
   const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);   // slow in, slow out
   const easeOut = (t) => 1 - Math.pow(1 - t, 3);

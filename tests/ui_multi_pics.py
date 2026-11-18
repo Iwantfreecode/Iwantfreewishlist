@@ -74,7 +74,7 @@ try:
     ok('ring is hidden again',ind()['o']==0,ind())
     tops=pg.evaluate('window.__tops'); done=pg.evaluate('window.__done')
     ok('from the last picture the pictures go under one after another: 4, 3, 2, 1 (top picture over time)',tops==[3,2,1,0],tops)
-    ok('the whole loop takes about 0.9 s (0.6 to 1.2 s)',done is not None and 600<done<1200,done)
+    ok('the whole loop takes about 0.6 s (0.4 to 0.9 s)',done is not None and 400<done<900,done)
     ok('looping did not open the big viewer',pg.locator('#viewer').count()==0)
     pg.evaluate(TOPS_JS); tswipe(int(cx-30),int(cx+30)); ok('a full pull at the first picture loops back to the last (4/4)',cnt()=='4/4',cnt())
     time.sleep(1.3); tops=pg.evaluate('window.__tops'); ok('from the first picture the pictures go under one after another: 1, 2, 3, 4',tops==[0,1,2,3],tops)
