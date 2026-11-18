@@ -65,13 +65,15 @@ try:
     pg.screenshot(path='/tmp/emu/pull_ready.png',clip={'x':box['x']-30,'y':box['y']-20,'width':box['width']+60,'height':box['height']+40})
     touch('touchEnd'); time.sleep(.12)
     ok('letting go loops with a shuffle (cards are animating)',pg.evaluate("[...document.querySelectorAll('.row .thumb .card')].some(c=>c.getAnimations().length>0)"))
-    pg.screenshot(path='/tmp/emu/shuffle_mid.png',clip={'x':box['x']-30,'y':box['y']-20,'width':box['width']+60,'height':box['height']+40})
-    time.sleep(1.0)
+    for k in range(6):                                                              # frames of the shuffle, for a contact sheet by eye
+        pg.screenshot(path=f'/tmp/emu/shuffle_{k}.png',clip={'x':box['x']-30,'y':box['y']-20,'width':box['width']+60,'height':box['height']+40}); time.sleep(.1)
+    time.sleep(1.7)
     ok('shuffle ends and the first picture is on top (1/4)',cnt()=='1/4' and not pg.evaluate("[...document.querySelectorAll('.row .thumb .card')].some(c=>c.getAnimations().length>0)"),cnt())
     ok('ring is hidden again',ind()['o']==0,ind())
     ok('looping did not open the big viewer',pg.locator('#viewer').count()==0)
     tswipe(int(cx-30),int(cx+30)); ok('a full pull at the first picture loops back to the last (4/4)',cnt()=='4/4',cnt())
-    time.sleep(.8)
+    tswipe(int(cx-5),int(cx+25)); tswipe(int(cx+20),int(cx-20)); time.sleep(1.7)      # two quick swipes while the shuffle is still playing
+    ok('swiping during a shuffle works (3/4 then 4/4) and nothing is left animating',cnt()=='4/4' and not pg.evaluate("[...document.querySelectorAll('.row .thumb .card')].some(c=>c.getAnimations().length>0)"),cnt())
     tswipe(int(cx-5),int(cx+25)); tswipe(int(cx-5),int(cx+25)); ok('back twice = 2/4',cnt()=='2/4',cnt())
     pg.locator('.row .thumb').tap(); pg.wait_for_selector('#viewer img',timeout=10000)
     ok('tap opens viewer on the current picture (2 / 4)',pg.inner_text('.vcount')=='2 / 4',pg.inner_text('.vcount'))

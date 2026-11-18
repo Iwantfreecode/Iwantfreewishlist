@@ -73,6 +73,8 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     ensure(cur); ensure(cur + 1); ensure(cur + 2);
   }
   // Shuffle: going round from one end to the other, the cards fan out like a deck being riffled, then settle with the new picture on top.
+  // The card order (z-index) flips at the widest point of the fan, where nobody can see it jump.
+  const SHUFFLE_MS = 900, FAN_AT = 0.4;
   function shuffle(before, was) {
     cards.forEach((c, i) => {
       const finalT = c.style.transform, finalO = c.style.opacity, finalZ = c.style.zIndex;
@@ -81,15 +83,17 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
       const fan = `translate(${side * (16 + (i % 3) * 5)}px,${-6 - (i % 3) * 2}px) rotate(${side * (11 + (i % 4) * 4)}deg) scale(.96)`;
       c.style.transition = 'none';
       c.animate([
-        { transform: before[i].t, opacity: before[i].o, zIndex: before[i].z },
-        { transform: fan, opacity: near ? 1 : 0, zIndex: before[i].z, offset: 0.45 },
+        { transform: before[i].t, opacity: before[i].o, zIndex: before[i].z, easing: 'cubic-bezier(.2,.7,.3,1)' },          // spread out: quick, then eases
+        { transform: fan, opacity: near ? 1 : 0, zIndex: before[i].z, offset: FAN_AT },
+        { transform: fan, opacity: near ? 1 : 0, zIndex: finalZ, offset: FAN_AT + 0.001, easing: 'cubic-bezier(.45,.05,.25,1)' },   // gather back: slow in, slow out
         { transform: finalT, opacity: finalO, zIndex: finalZ }
-      ], { duration: 520, delay: Math.min(i, 6) * 22, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'backwards' });
+      ], { duration: SHUFFLE_MS, delay: Math.min(i, 6) * 35, fill: 'backwards' });
     });
   }
   const set = (i, tell = true, round = false) => {
     const was = cur;
     const before = round && !reduce ? cards.map((c) => { const k = getComputedStyle(c); return { t: k.transform, o: k.opacity, z: c.style.zIndex || '0' }; }) : null;
+    cards.forEach((c) => c.getAnimations().forEach((an) => an.cancel()));    // a new change replaces a shuffle that is still playing
     cur = Math.min(Math.max(i, 0), n - 1); dx = 0; place();
     if (before) shuffle(before, was);
     if (tell && cur !== was && onChange) onChange(cur);

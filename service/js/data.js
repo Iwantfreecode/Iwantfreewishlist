@@ -3,8 +3,8 @@ import {
   doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, writeBatch, collection, collectionGroup,
   query, where, serverTimestamp, deleteField
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { newListId, mapOldItem, nextItemId } from './logic.js?v=20261113b';
-import { normTag } from './tags.js?v=20261113b';
+import { newListId, mapOldItem, nextItemId } from './logic.js?v=20261113c';
+import { normTag } from './tags.js?v=20261113c';
 
 export function makeData(db) {
   const listRef = (id) => doc(db, 'lists', id);

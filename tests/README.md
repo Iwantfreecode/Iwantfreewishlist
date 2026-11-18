@@ -7,11 +7,11 @@
 3. `rules_cases.mjs` (needs @firebase/rules-unit-testing), `ui_e2e.py`, `ui_multi_pics.py`, `ui_look.py`, `ui_import.py`, `ui_text_layout.py` (Playwright, serve repo root on :8123, they use ?emu=1)
 4. `unit.mjs`: copy service/js/logic.js, tags.js and rates.js next to it as logic.mjs, tags.mjs and rates.mjs (do this before every run; the copies are git-ignored)
 5. `ui_viewer_harness.py`: first run `python3 tests/make_viewer_harness.py` (builds /tmp/vt with viewer.js, style.css, 3 jpgs and a #go page; needs Pillow), then the test. Last run 2026-11-12: 16/16.
-Last run 2026-11-12: rules 57/57, unit 32/32, ui_e2e 37/37, ui_multi_pics 36/25, ui_saving 7/7, ui_text_size 18/18, ui_look 17/17, viewer harness 16/16.
+Last run 2026-11-12: rules 57/57, unit 32/32, ui_e2e 37/37, ui_multi_pics 37/25, ui_saving 7/7, ui_text_size 18/18, ui_look 17/17, viewer harness 16/16.
 5. `import_stress.mjs`: prints how 18 messy lists are read (same logic.mjs copy as unit.mjs). Look at it by eye after changing the import parser.
 
 6. New 2026-11-12: `ui_guest.py` (guest door, owner switch, owner removes a claim), `ui_money.py` (currency, budget; the rate source is mocked), `ui_contrast.py` (real contrast of 8 themes x light/dark x 2 layouts; friend view and sign-in only).
-Last run 2026-11-12: unit 73, rules 101, ui_e2e 37, ui_look 17, ui_import 14, ui_text_layout 6, ui_text_size 18, ui_multi_pics 36, ui_guest 19, ui_money 11, ui_contrast all pass, ui_saving 7 (flaky: sometimes 6/7 on the old code too, a timing check on the "Saving…" text).
+Last run 2026-11-12: unit 73, rules 101, ui_e2e 37, ui_look 17, ui_import 14, ui_text_layout 6, ui_text_size 18, ui_multi_pics 37, ui_guest 19, ui_money 11, ui_contrast all pass, ui_saving 7 (flaky: sometimes 6/7 on the old code too, a timing check on the "Saving…" text).
 
 7. New 2026-11-12: `ui_offline_tick.py` (a tick that cannot be saved: offline = no tick and a plain message; bad connection = "Saving…" plus "Still saving…" message, finishes when back, really saved). Needs the emulators. `make_fixtures.py` makes the picture files that ui_e2e.py and ui_multi_pics.py upload (run it once per chat).
 Last run 2026-11-12 (after the offline fix): unit 76, ui_offline_tick 7, ui_e2e 37, ui_saving 7, ui_guest 19, ui_multi_pics 27, ui_look 17, ui_import 14, ui_money 11, ui_text_layout 6, ui_text_size 18. Not rerun: rules_cases (rules unchanged), ui_contrast (CSS unchanged).
