@@ -6,17 +6,17 @@ import {
   signOut, deleteUser, signInAnonymously, updateProfile
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
-import { firebaseConfig, GUESTS_ENABLED } from './config.js?v=20261112y';
-import { getRate } from './rates.js?v=20261112y';
+import { firebaseConfig, GUESTS_ENABLED } from './config.js?v=20261112z';
+import { getRate } from './rates.js?v=20261112z';
 import {
   PRIORITIES, cleanName, validName, nameToEmail, nextItemId, itemFromForm, checkItemInput,
   groupItems, totalToGet, CURRENCIES, money, convertedRange, friendlyError, moveInOrder, isHttps, itemPics, picLinksOf,
-  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112y';
-import { tagHits, bigHits, allTags } from './tags.js?v=20261112y';
-import { makeData } from './data.js?v=20261112y';
-import { runEffect } from './effect.js?v=20261112y';
-import { openViewer } from './viewer.js?v=20261112y';
-import { stackThumb } from './stack.js?v=20261112y';
+  DEFAULT_PREFS, THEME_NAMES, themeVars, FONTS, TEXT_SIZES, sanitizePrefs, parseImport, IMPORT_MAX } from './logic.js?v=20261112z';
+import { tagHits, bigHits, allTags } from './tags.js?v=20261112z';
+import { makeData } from './data.js?v=20261112z';
+import { runEffect } from './effect.js?v=20261112z';
+import { openViewer } from './viewer.js?v=20261112z';
+import { stackThumb } from './stack.js?v=20261112z';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);

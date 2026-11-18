@@ -1,6 +1,6 @@
 // Little swipeable picture stack for a list row (like the iMessage photo stack).
 // The top card is the current picture. The next ones peek out behind it to the right; the ones already seen stack up behind it to the left.
-// Swipe left/right on it to change picture. A tap (no swipe) calls onOpen(index) to show the big viewer.
+// Swipe left/right on it to change picture; it loops (swipe on from the last picture to reach the first, and back from the first to the last). A tap (no swipe) calls onOpen(index) to show the big viewer.
 //   pics: [{ load: () => Promise<string> }]   start: first index   onChange(i): called after each change
 export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
   const n = pics.length;
@@ -74,8 +74,7 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     const mx = e.clientX - down.x;
     if (Math.abs(mx) > 6) swiped = true;
     if (!swiped) return;
-    const atEdge = (mx > 0 && cur === 0) || (mx < 0 && cur === n - 1);
-    dx = atEdge ? mx / 4 : mx;
+    dx = mx;                                           // no stiff edge: past the last picture it goes round to the first (and back)
     cards[cur].style.transition = 'none';
     cards[cur].style.transform = `translateX(${dx}px) rotate(${dx / 12}deg)`;
   });
@@ -85,7 +84,7 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     if (!swiped) return;
     const mx = e.clientX - d.x, w = btn.getBoundingClientRect().width;
     const fast = Math.abs(mx) > 12 && Date.now() - d.t < 250;
-    if (Math.abs(mx) > Math.max(20, w * 0.3) || fast) set(cur + (mx < 0 ? 1 : -1)); else set(cur);
+    if (Math.abs(mx) > Math.max(20, w * 0.3) || fast) set((cur + (mx < 0 ? 1 : -1) + n) % n); else set(cur);   // loops: after the last comes the first
     setTimeout(() => { swiped = false; }, 0);          // the click that follows a swipe is ignored (below)
   };
   btn.addEventListener('pointerup', end);
