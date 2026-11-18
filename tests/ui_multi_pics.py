@@ -63,26 +63,23 @@ try:
     i2=ind(); ok('pulled far enough: the ring is full and turns solid',i2['ready'] and i2['off']<1,i2)
     pulled=topT(); ok('at the end the card moves at about a third of the finger (48 px finger, 16.8 px card)',pulled.startswith('translateX(-16.8'),pulled)
     pg.screenshot(path='/tmp/emu/pull_ready.png',clip={'x':box['x']-30,'y':box['y']-20,'width':box['width']+60,'height':box['height']+40})
-    # measure the motion of the card that comes to the top, once per screen frame, to check it never stops or jumps
-    pg.evaluate("(()=>{window.__rec=[];const c=document.querySelectorAll('.row .thumb .card')[0];const t0=performance.now();const f=()=>{window.__rec.push([performance.now()-t0,c.getBoundingClientRect().left]);if(performance.now()-t0<1400)requestAnimationFrame(f);};requestAnimationFrame(f);})()")
+    TOPS_JS="(()=>{window.__tops=[];window.__t0=performance.now();window.__done=null;window.__started=false;const f=()=>{const cs=[...document.querySelectorAll('.row .thumb .card')];let best=-1,bz=-1e9;cs.forEach((c,i)=>{const z=parseInt(getComputedStyle(c).zIndex)||0;if(parseFloat(getComputedStyle(c).opacity)>0.3&&z>bz){bz=z;best=i;}});const L=window.__tops;if(L[L.length-1]!==best)L.push(best);const run=cs.some(c=>c.getAnimations().length>0);if(run)window.__started=true;if(window.__started&&!run&&window.__done===null)window.__done=performance.now()-window.__t0;if(performance.now()-window.__t0<2400)requestAnimationFrame(f);};requestAnimationFrame(f);})()"
+    pg.evaluate(TOPS_JS)                                                           # watches which picture is on top, every screen frame
     touch('touchEnd'); time.sleep(.12)
-    ok('letting go loops with a shuffle (cards are animating)',pg.evaluate("[...document.querySelectorAll('.row .thumb .card')].some(c=>c.getAnimations().length>0)"))
-    for k in range(6):                                                              # frames of the shuffle, for a contact sheet by eye
+    ok('letting go loops with the go-under animation (cards are animating)',pg.evaluate("[...document.querySelectorAll('.row .thumb .card')].some(c=>c.getAnimations().length>0)"))
+    for k in range(6):                                                              # frames of the animation, for a contact sheet by eye
         pg.screenshot(path=f'/tmp/emu/shuffle_{k}.png',clip={'x':box['x']-30,'y':box['y']-20,'width':box['width']+60,'height':box['height']+40}); time.sleep(.1)
     time.sleep(1.7)
-    ok('shuffle ends and the first picture is on top (1/4)',cnt()=='1/4' and not pg.evaluate("[...document.querySelectorAll('.row .thumb .card')].some(c=>c.getAnimations().length>0)"),cnt())
+    ok('the animation ends and the first picture is on top (1/4)',cnt()=='1/4' and not pg.evaluate("[...document.querySelectorAll('.row .thumb .card')].some(c=>c.getAnimations().length>0)"),cnt())
     ok('ring is hidden again',ind()['o']==0,ind())
-    rec=pg.evaluate('window.__rec')
-    sp=[(rec[k][0],abs(rec[k+1][1]-rec[k][1])/max(1,rec[k+1][0]-rec[k][0])) for k in range(len(rec)-1)]
-    mv=[(tt,v) for tt,v in sp if v>0.01]; t0_,t1_=mv[0][0],mv[-1][0]                 # the moving part of the animation
-    run=[(tt,v) for tt,v in sp if t0_<=tt<=t1_]; spd=[v for _,v in run]
-    print('   motion: moved for %d ms in %d frames, fastest %.2f px/ms, average %.2f'%(t1_-t0_,len(run),max(spd),sum(spd)/len(spd)))
-    ok('shuffle plays for about 0.9 s without a break (the card moves in 700 to 1000 ms)',700<t1_-t0_<1000,t1_-t0_)
-    ok('shuffle motion has no sudden jump (no frame moves more than 4x the average speed)',max(spd)<4*(sum(spd)/len(spd)),(max(spd),sum(spd)/len(spd)))
+    tops=pg.evaluate('window.__tops'); done=pg.evaluate('window.__done')
+    ok('from the last picture the pictures go under one after another: 4, 3, 2, 1 (top picture over time)',tops==[3,2,1,0],tops)
+    ok('the whole loop takes about 0.9 s (0.6 to 1.2 s)',done is not None and 600<done<1200,done)
     ok('looping did not open the big viewer',pg.locator('#viewer').count()==0)
-    tswipe(int(cx-30),int(cx+30)); ok('a full pull at the first picture loops back to the last (4/4)',cnt()=='4/4',cnt())
-    tswipe(int(cx-5),int(cx+25)); tswipe(int(cx+20),int(cx-20)); time.sleep(1.7)      # two quick swipes while the shuffle is still playing
-    ok('swiping during a shuffle works (3/4 then 4/4) and nothing is left animating',cnt()=='4/4' and not pg.evaluate("[...document.querySelectorAll('.row .thumb .card')].some(c=>c.getAnimations().length>0)"),cnt())
+    pg.evaluate(TOPS_JS); tswipe(int(cx-30),int(cx+30)); ok('a full pull at the first picture loops back to the last (4/4)',cnt()=='4/4',cnt())
+    time.sleep(1.3); tops=pg.evaluate('window.__tops'); ok('from the first picture the pictures go under one after another: 1, 2, 3, 4',tops==[0,1,2,3],tops)
+    tswipe(int(cx-5),int(cx+25)); tswipe(int(cx+20),int(cx-20)); time.sleep(1.7)      # two quick swipes while the animation is still playing
+    ok('swiping during the animation works (3/4 then 4/4) and nothing is left animating',cnt()=='4/4' and not pg.evaluate("[...document.querySelectorAll('.row .thumb .card')].some(c=>c.getAnimations().length>0)"),cnt())
     tswipe(int(cx-5),int(cx+25)); tswipe(int(cx-5),int(cx+25)); ok('back twice = 2/4',cnt()=='2/4',cnt())
     pg.locator('.row .thumb').tap(); pg.wait_for_selector('#viewer img',timeout=10000)
     ok('tap opens viewer on the current picture (2 / 4)',pg.inner_text('.vcount')=='2 / 4',pg.inner_text('.vcount'))
