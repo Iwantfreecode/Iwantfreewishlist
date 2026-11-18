@@ -1,6 +1,7 @@
 // Little swipeable picture stack for a list row (like the iMessage photo stack).
 // The top card is the current picture. The next ones peek out behind it to the right; the ones already seen stack up behind it to the left.
-// Swipe left/right on it to change picture; it loops (swipe on from the last picture to reach the first, and back from the first to the last). A tap (no swipe) calls onOpen(index) to show the big viewer.
+// Swipe left/right on it to change picture. It loops: pull past the last picture (or the first) by a set length and the pictures shuffle round to the other end.
+// At the ends the card pulls back and a ring fills while you pull; when the ring is full, let go to loop. A tap (no swipe) calls onOpen(index) to show the big viewer.
 //   pics: [{ load: () => Promise<string> }]   start: first index   onChange(i): called after each change
 export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
   const n = pics.length;
@@ -16,6 +17,21 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
   });
   let badge = null;
   if (n > 1) { badge = document.createElement('span'); badge.className = 'count'; badge.setAttribute('aria-hidden', 'true'); btn.append(badge); }
+
+  // The loop ring: shows how far you have pulled at an end. Full ring (it turns solid) = let go now and it loops.
+  const RING = 2 * Math.PI * 12;
+  const ind = document.createElement('span'); ind.className = 'loopind'; ind.setAttribute('aria-hidden', 'true');
+  ind.innerHTML = '<svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="12" fill="none" stroke-width="2.4"/>'
+    + '<circle class="bar" cx="16" cy="16" r="12" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="' + RING + '" stroke-dashoffset="' + RING + '"/>'
+    + '<path d="M20.2 13.2A5 5 0 1 0 21 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+    + '<path d="M20.6 9.6v3.9h-3.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const bar = ind.querySelector('.bar');
+  if (n > 1) btn.append(ind);
+  function showPull(p) {
+    ind.style.opacity = p < 0.12 ? '0' : String(Math.min(1, p + 0.25));
+    bar.style.strokeDashoffset = String(RING * (1 - Math.min(1, p)));
+    ind.classList.toggle('ready', p >= 1);
+  }
 
   // load a picture into its card the first time it is near the top
   const started = {};
@@ -56,9 +72,26 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     if (badge) badge.textContent = `${cur + 1}/${n}`;
     ensure(cur); ensure(cur + 1); ensure(cur + 2);
   }
-  const set = (i, tell = true) => {
+  // Shuffle: going round from one end to the other, the cards fan out like a deck being riffled, then settle with the new picture on top.
+  function shuffle(before, was) {
+    cards.forEach((c, i) => {
+      const finalT = c.style.transform, finalO = c.style.opacity, finalZ = c.style.zIndex;
+      const near = Math.abs(i - was) <= 2 || Math.abs(i - cur) <= 2;           // only the cards near either end join in
+      const side = i % 2 ? 1 : -1;
+      const fan = `translate(${side * (16 + (i % 3) * 5)}px,${-6 - (i % 3) * 2}px) rotate(${side * (11 + (i % 4) * 4)}deg) scale(.96)`;
+      c.style.transition = 'none';
+      c.animate([
+        { transform: before[i].t, opacity: before[i].o, zIndex: before[i].z },
+        { transform: fan, opacity: near ? 1 : 0, zIndex: before[i].z, offset: 0.45 },
+        { transform: finalT, opacity: finalO, zIndex: finalZ }
+      ], { duration: 520, delay: Math.min(i, 6) * 22, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'backwards' });
+    });
+  }
+  const set = (i, tell = true, round = false) => {
     const was = cur;
+    const before = round && !reduce ? cards.map((c) => { const k = getComputedStyle(c); return { t: k.transform, o: k.opacity, z: c.style.zIndex || '0' }; }) : null;
     cur = Math.min(Math.max(i, 0), n - 1); dx = 0; place();
+    if (before) shuffle(before, was);
     if (tell && cur !== was && onChange) onChange(cur);
   };
 
@@ -70,12 +103,16 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     btn.setPointerCapture(e.pointerId);
   });
   const atEdge = (mx) => (mx > 0 && cur === 0) || (mx < 0 && cur === n - 1);
+  const PULL = 0.35, PULL_MAX = 22;                               // how much the card moves for each px of finger at an end, and its limit
+  const needed = () => Math.max(40, btn.getBoundingClientRect().width * 0.6);   // how far to pull at an end before it loops
   btn.addEventListener('pointermove', (e) => {
     if (!down) return;
     const mx = e.clientX - down.x;
     if (Math.abs(mx) > 6) swiped = true;
     if (!swiped) return;
-    dx = atEdge(mx) ? mx / 2 : mx;                      // at the ends the card pulls back a little (it still goes round if you swipe on)
+    const edge = atEdge(mx);
+    dx = edge ? Math.sign(mx) * Math.min(Math.abs(mx) * PULL, PULL_MAX) : mx;   // at an end the card fights you: it moves at about a third of your finger
+    showPull(edge ? Math.abs(mx) / needed() : 0);
     cards[cur].style.transition = 'none';
     cards[cur].style.transform = `translateX(${dx}px) rotate(${dx / 12}deg)`;
   });
@@ -84,13 +121,17 @@ export function stackThumb({ pics, start = 0, label, onOpen, onChange }) {
     const d = down; down = null;
     if (!swiped) return;
     const mx = e.clientX - d.x, w = btn.getBoundingClientRect().width;
-    const edge = atEdge(mx);                            // going round needs a slightly longer swipe than a normal change
-    const fast = Math.abs(mx) > (edge ? 20 : 12) && Date.now() - d.t < 250;
-    if (Math.abs(mx) > (edge ? Math.max(30, w * 0.4) : Math.max(20, w * 0.3)) || fast) set((cur + (mx < 0 ? 1 : -1) + n) % n); else set(cur);   // loops: after the last comes the first
+    showPull(0);
+    if (atEdge(mx)) {                                    // at an end: only a full pull loops (a quick flick does not)
+      if (Math.abs(mx) >= needed()) set((cur + (mx < 0 ? 1 : -1) + n) % n, true, true); else set(cur);
+    } else {
+      const fast = Math.abs(mx) > 12 && Date.now() - d.t < 250;
+      if (Math.abs(mx) > Math.max(20, w * 0.3) || fast) set(cur + (mx < 0 ? 1 : -1)); else set(cur);
+    }
     setTimeout(() => { swiped = false; }, 0);          // the click that follows a swipe is ignored (below)
   };
   btn.addEventListener('pointerup', end);
-  btn.addEventListener('pointercancel', () => { down = null; swiped = false; set(cur); });
+  btn.addEventListener('pointercancel', () => { down = null; swiped = false; showPull(0); set(cur); });
   btn.addEventListener('click', (e) => {
     if (swiped) { e.preventDefault(); return; }
     onOpen(cur);

@@ -44,6 +44,13 @@ button { cursor: pointer; }
 .row .thumb .card { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); box-sizing: border-box; transform-origin: 50% 90%; will-change: transform; }
 .row .thumb .card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-user-drag: none; }
 .row .thumb .count { position: absolute; z-index: 200; left: 4px; bottom: 4px; padding: 1px 6px; border-radius: 8px; background: rgba(0,0,0,.65); color: #fff; font-size: calc(13px * var(--ts)); line-height: 1.3; font-variant-numeric: tabular-nums; pointer-events: none; }
+/* The loop ring on a picture stack: fills while you pull at an end, turns solid when you can let go to loop */
+.row .thumb .loopind { position: absolute; z-index: 300; left: 50%; top: 50%; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%; background: rgba(0,0,0,.62); color: #fff; opacity: 0; transform: scale(.85); transition: opacity .12s, transform .12s, background .12s; pointer-events: none; }
+.row .thumb .loopind svg { display: block; width: 100%; height: 100%; }
+.row .thumb .loopind .trk { stroke: currentColor; opacity: .3; }
+.row .thumb .loopind .bar { stroke: currentColor; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.row .thumb .loopind.ready { background: var(--accent); color: var(--on-accent); transform: scale(1.12); }
+@media (prefers-reduced-motion: reduce) { .row .thumb .loopind { transition: none; } }
 .row .body { order: 2; flex: 1; min-width: 0; }
 .row .tick { order: 3; flex: none; width: 44px; height: 44px; border: 0; background: none; display: flex; align-items: center; justify-content: center; margin: 0; }
 .row.owner .tick { order: 0; width: 28px; margin: 8px 0 0; }
@@ -277,6 +284,7 @@ h4 { margin: 24px 0 0; font-size: calc(15px * var(--ts)); font-weight: 600; }
 :root[data-layout="text"] .row.tx .thumb { display: block; order: 0; width: 220px; height: 220px; max-width: 100%; margin: 12px 0 8px; border-radius: 0; }
 :root[data-layout="text"] .row.tx .thumb .card { border-radius: 0; border: 1px solid var(--line); }
 :root[data-layout="text"] .row.tx .thumb .count { border-radius: 0; }
+:root[data-layout="text"] .row.tx .thumb .loopind { border-radius: 0; }
 :root[data-layout="text"] .details { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 16px; margin: 8px 0 0; }
 :root[data-layout="text"] .details dt { color: var(--muted); }
 :root[data-layout="text"] .details dd { margin: 0; overflow-wrap: anywhere; }
